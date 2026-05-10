@@ -374,9 +374,12 @@ class UIButton:
     def draw(self, img):
         img.draw_rect(self.x, self.y, self.w, self.h, color=image.Color.from_rgb(40, 40, 40), thickness=-1)
         img.draw_rect(self.x, self.y, self.w, self.h, color=image.Color.from_rgb(200, 200, 200), thickness=2)
-        img.draw_string(self.x + 15, self.y + (self.h // 2) - 15, self.label, color=image.Color.from_rgb(255, 255, 255), scale=2.0)
+        
         if self.value != "":
-            img.draw_string(self.x + self.w - 180, self.y + (self.h // 2) - 15, str(self.value), color=image.Color.from_rgb(0, 255, 255), scale=2.0)
+            img.draw_string(self.x + 10, self.y + 5, self.label, color=image.Color.from_rgb(200, 200, 200), scale=1.5)
+            img.draw_string(self.x + 10, self.y + 30, str(self.value), color=image.Color.from_rgb(0, 255, 255), scale=2.0)
+        else:
+            img.draw_string(self.x + 10, self.y + (self.h // 2) - 12, self.label, color=image.Color.from_rgb(255, 255, 255), scale=1.8)
 
     def is_clicked(self, x, y):
         return self.x <= x <= self.x + self.w and self.y <= y <= self.y + self.h
@@ -466,28 +469,37 @@ class UI:
         self.active_buttons = []
         
         # Semi-transparent background
-        img.draw_rect(0, 0, 360, img.height(), color=image.Color.from_rgb(0, 0, 0), thickness=-1)
+        img.draw_rect(0, 0, 400, img.height(), color=image.Color.from_rgb(0, 0, 0), thickness=-1)
         
         # Title
         img.draw_string(10, 10, "MAIN MENU", color=image.Color.from_rgb(255, 255, 0), scale=2.5)
         
         y = 50
-        h = 45
-        w = 340
-        spacing = 50
+        h = 60
+        w = 380
+        spacing = 65
+        
+        mode = self.state.config["detection_mode"]
         
         btn_data = [
-            (0, "Detection Mode", self.state.config["detection_mode"]),
-            (1, "Color Preset", self.state.config["color_preset"]),
-            (2, "Object Target", self.state.config["object_preset"]),
-            (3, "Settings", ""),
-            (4, "Calibrate Color", ""),
-            (5, "ARM/DISARM", "ARMED" if self.state.armed else "DISARMED"),
-            (6, "Save & Exit", "")
+            (0, "Mode", mode.upper()),
         ]
         
+        if mode == "color":
+            btn_data.append((1, "Color", self.state.config["color_preset"]))
+            btn_data.append((4, "Calibrate Color", ""))
+        elif mode == "object":
+            btn_data.append((2, "Target", self.state.config["object_preset"]))
+            
+        btn_data.extend([
+            (3, "Settings", ""),
+            (5, "State", "ARMED" if self.state.armed else "DISARMED"),
+            (6, "Save & Exit", "")
+        ])
+        
         for id, label, value in btn_data:
-            btn = UIButton(id, 10, y, w, h, label, value)
+            display_label = f"{label}: {value}" if value else label
+            btn = UIButton(id, 10, y, w, h, display_label, "")
             btn.draw(img)
             self.active_buttons.append(btn)
             y += spacing
@@ -503,49 +515,52 @@ class UI:
                        color=image.Color.from_rgb(150, 150, 150), scale=2)
     
     def draw_settings(self, img):
-        """Draw settings menu using UIButtons"""
+        """Draw settings menu using UIButtons in a grid"""
         self.active_buttons = []
         
         # Semi-transparent background
-        img.draw_rect(0, 0, 420, img.height(), color=image.Color.from_rgb(0, 0, 0), thickness=-1)
+        img.draw_rect(0, 0, img.width(), img.height(), color=image.Color.from_rgb(0, 0, 0), thickness=-1)
         
         # Title
         img.draw_string(10, 5, f"SETTINGS P{self.state.settings_page+1}", color=image.Color.from_rgb(255, 255, 0), scale=2.5)
         
         y = 45
-        h = 40
-        w = 400
-        spacing = 45
+        h = 60
+        w = int(img.width() / 2) - 15
+        spacing = 65
         
         if self.state.settings_page == 0:
             btn_data = [
-                (0, "Close Delay", f"{self.state.config['close_delay']}s"),
-                (1, "Rearm Mode", "ON" if self.state.config['rearm_mode'] else "OFF"),
-                (2, "Rearm Delay", f"{self.state.config['rearm_delay']}s"),
-                (3, "Repeat Trigger", "ON" if self.state.config['repeat_trigger'] else "OFF"),
+                (0, "Close", f"{self.state.config['close_delay']}s"),
+                (1, "Rearm", "ON" if self.state.config['rearm_mode'] else "OFF"),
+                (2, "Rearm Dly", f"{self.state.config['rearm_delay']}s"),
+                (3, "Repeat", "ON" if self.state.config['repeat_trigger'] else "OFF"),
                 (4, "Min Area", f"{self.state.config['min_area']}"),
-                (5, "Confidence", f"{self.state.config['confidence_threshold']:.2f}"),
-                (6, "Motion Sens", f"{self.state.config['motion_sensitivity']}"),
-                (7, "Next Page ->", ""),
+                (5, "Conf.", f"{self.state.config['confidence_threshold']:.2f}"),
+                (6, "Mot. Sens", f"{self.state.config['motion_sensitivity']}"),
+                (7, "Next Page", ""),
                 (8, "Back to Menu", "")
             ]
         else:
             res = f"{self.state.config['camera_width']}x{self.state.config['camera_height']}"
             btn_data = [
-                (0, "Resolution", res),
+                (0, "Res", res),
                 (1, "Servo Pin", str(self.state.config.get('servo_pin', 'A18'))),
-                (2, "Angle Open", f"{self.state.config.get('servo_angle_open', 90)}°"),
-                (3, "Angle Close", f"{self.state.config.get('servo_angle_close', 0)}°"),
-                (4, "Rep. Interval", f"{self.state.config.get('repeat_interval', 10)}s"),
-                (5, "<- Prev Page", ""),
+                (2, "Angle Op", f"{self.state.config.get('servo_angle_open', 90)}°"),
+                (3, "Angle Cl", f"{self.state.config.get('servo_angle_close', 0)}°"),
+                (4, "Rep. Int", f"{self.state.config.get('repeat_interval', 10)}s"),
+                (5, "Prev Page", ""),
                 (6, "Back to Menu", "")
             ]
             
-        for id, label, value in btn_data:
-            btn = UIButton(id, 10, y, w, h, label, value)
+        for i, (id, label, value) in enumerate(btn_data):
+            col = i % 2
+            row = i // 2
+            btn_x = 10 + col * (w + 10)
+            btn_y = y + row * spacing
+            btn = UIButton(id, btn_x, btn_y, w, h, label, value)
             btn.draw(img)
             self.active_buttons.append(btn)
-            y += spacing
 
     def draw_select(self, img):
         """Draw selection list/grid"""
