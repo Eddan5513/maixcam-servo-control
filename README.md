@@ -66,6 +66,30 @@ Servo Power  -> VBUS 5V
 2. Загрузите `advanced_servo_app.py`
 3. Запустите приложение
 
+### Тестирование
+```bash
+# Тест сервопривода
+python3 utils/servo_test.py
+
+# Проверка PWM пинов
+python3 utils/check_pwm_pins.py
+
+# Калибровка цвета
+python3 utils/calibrate_color.py
+```
+
+### Примеры
+```bash
+# Простая версия
+python3 examples/simple_servo_app.py
+
+# Детекция цвета
+python3 examples/color_servo_app.py
+
+# Полная версия
+python3 advanced_servo_app.py
+```
+
 ### Управление
 - **TAP на экране** - открыть меню
 - **В меню:**
@@ -169,10 +193,36 @@ Created for MaixCAM development
 
 ## 📖 Документация
 
-- **[QUICKSTART.md](QUICKSTART.md)** - Быстрый старт за 5 минут
-- **[EXAMPLES.md](EXAMPLES.md)** - Примеры использования и интеграции
-- **[TECHNICAL.md](TECHNICAL.md)** - Техническая документация и оптимизация
-- **[config_examples.json](config_examples.json)** - Готовые конфигурации
+- **[docs/QUICKSTART.md](docs/QUICKSTART.md)** - Быстрый старт за 5 минут
+- **[docs/EXAMPLES.md](docs/EXAMPLES.md)** - Примеры использования и интеграции
+- **[docs/TECHNICAL.md](docs/TECHNICAL.md)** - Техническая документация и оптимизация
+- **[docs/config_examples.json](docs/config_examples.json)** - Готовые конфигурации
+- **[CHANGELOG.md](CHANGELOG.md)** - История изменений
+
+## 📂 Структура проекта
+
+```
+maixcam-servo-control/
+├── advanced_servo_app.py      # Основное приложение
+├── examples/                   # Примеры приложений
+│   ├── simple_servo_app.py    # Упрощенная версия
+│   ├── color_servo_app.py     # Детекция цвета
+│   ├── servo_detector_app.py  # Мультирежимная версия
+│   └── yellow_servo_control.py # Базовая версия
+├── utils/                      # Утилиты
+│   ├── servo_test.py          # Тест сервопривода
+│   ├── check_pwm_pins.py      # Проверка PWM пинов
+│   └── calibrate_color.py     # Калибровка цвета
+├── docs/                       # Документация
+│   ├── QUICKSTART.md          # Быстрый старт
+│   ├── EXAMPLES.md            # Примеры
+│   ├── TECHNICAL.md           # Техническая документация
+│   ├── PROJECT_SUMMARY.md     # Обзор проекта
+│   └── config_examples.json   # Примеры конфигов
+├── README.md                   # Основная документация
+├── CHANGELOG.md                # История изменений
+└── LICENSE                     # MIT License
+```
 
 ## 🔗 Ссылки
 

@@ -480,14 +480,16 @@ class UI:
     def draw_settings(self, img):
         """Draw settings menu"""
         # Semi-transparent background
-        img.draw_rect(0, 0, 350, img.height(), color=image.Color.from_rgb(0, 0, 0), thickness=-1)
+        img.draw_rect(0, 0, 380, img.height(), color=image.Color.from_rgb(0, 0, 0), thickness=-1)
         
         # Title
         img.draw_string(10, 10, "SETTINGS", color=image.Color.from_rgb(255, 255, 0), scale=3)
         
         # Settings items
         y = 70
-        spacing = 45
+        spacing = 42
+        
+        res = f"{self.state.config['camera_width']}x{self.state.config['camera_height']}"
         
         items = [
             ("Close Delay", f"{self.state.config['close_delay']}s"),
@@ -497,15 +499,16 @@ class UI:
             ("Min Area", f"{self.state.config['min_area']}"),
             ("Confidence", f"{self.state.config['confidence_threshold']:.2f}"),
             ("Motion Sens", f"{self.state.config['motion_sensitivity']}"),
+            ("Resolution", res),
             ("Back to Menu", "")
         ]
         
         for i, (label, value) in enumerate(items):
             color = image.Color.from_rgb(255, 255, 255)
-            img.draw_string(10, y + i * spacing, f"{i+1}. {label}", color=color, scale=1.8)
+            img.draw_string(10, y + i * spacing, f"{i+1}. {label}", color=color, scale=1.7)
             if value:
-                img.draw_string(200, y + i * spacing, value, 
-                               color=image.Color.from_rgb(0, 255, 255), scale=1.8)
+                img.draw_string(220, y + i * spacing, value, 
+                               color=image.Color.from_rgb(0, 255, 255), scale=1.7)
         
         # Hint
         img.draw_string(10, img.height() - 40, "TAP TO ADJUST", 
@@ -648,7 +651,7 @@ def handle_touch(state, img, tx, ty, color_detector):
     
     elif state.ui_mode == "settings":
         # Settings adjustment based on Y position
-        setting_item = ty // 45
+        setting_item = ty // 42
         
         if setting_item == 0:  # Close delay
             delays = [3, 5, 10, 15, 20, 30, 60]
@@ -699,7 +702,28 @@ def handle_touch(state, img, tx, ty, color_detector):
             else:
                 state.config["motion_sensitivity"] = sensitivities[0]
         
-        elif setting_item == 7:  # Back to menu
+        elif setting_item == 7:  # Resolution
+            resolutions = [
+                (320, 240),
+                (640, 480),
+                (800, 600),
+                (1280, 720)
+            ]
+            current = (state.config["camera_width"], state.config["camera_height"])
+            if current in resolutions:
+                idx = resolutions.index(current)
+                new_res = resolutions[(idx + 1) % len(resolutions)]
+            else:
+                new_res = resolutions[0]
+            
+            state.config["camera_width"] = new_res[0]
+            state.config["camera_height"] = new_res[1]
+            
+            # Show restart message
+            print(f"[SETTINGS] Resolution changed to {new_res[0]}x{new_res[1]}")
+            print("[SETTINGS] Restart app to apply changes")
+        
+        elif setting_item == 8:  # Back to menu
             state.save_config()
             state.ui_mode = "menu"
 
