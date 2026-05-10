@@ -106,32 +106,29 @@ Perfect for **robotics**, **automation**, **IoT projects**, **computer vision** 
 
 #### 1️⃣ Hardware Setup
 ```
-Servo Signal (yellow) → A18 (PWM6)
+Servo Signal (yellow) → A18 (configurable in UI: A14-A19)
 Servo GND (brown)     → GND
 Servo Power (red)     → VBUS 5V (2A recommended)
 ```
 
-#### 2️⃣ Test Hardware
-```bash
-python3 utils/servo_test.py
-python3 utils/check_pwm_pins.py
-```
+#### 2️⃣ Installation (Autonomous Execution)
+No PC required after installation! The app runs entirely standalone.
+1. Download the `advanced_servo_drop_v1.0.0.zip` from the [Releases](https://github.com/bobberdolle1/maixcam-servo-control/releases).
+2. Use MaixVision's App Store or CLI to install the app on your MaixCAM:
+   ```bash
+   app_store_cli install advanced_servo_drop_v1.0.0.zip
+   ```
+3. The app **"Servo Drop"** will now appear on your camera's touch screen launcher.
 
-#### 3️⃣ Run Application
-```bash
-# Simple version
-python3 examples/simple_servo_app.py
+#### 3️⃣ Enable Auto-Boot (Optional)
+To have the camera automatically start the app when powered by a drone/power bank:
+- On the camera screen, go to **Settings** -> **Boot App**.
+- Select **Servo Drop**.
 
-# Full version with UI
-python3 advanced_servo_app.py
-```
-
-#### 4️⃣ Configure
-- **Tap screen** to open menu
-- Select **detection mode** (Color/Object/Motion)
-- Choose **target** (color or object)
-- Adjust **settings** (delays, thresholds, resolution)
-- **Save** and enjoy!
+#### 4️⃣ Configure (Touch UI)
+- Tap the screen to open the **Menu**.
+- The new **Bounding Box UI** makes selecting settings easy.
+- Choose Mode (Color/Object/Motion), Pins, Angles (0-180°), and Delays.
 
 ### 🎯 Use Cases
 
@@ -288,32 +285,29 @@ MIT License - See [LICENSE](LICENSE) file
 
 #### 1️⃣ Подключение
 ```
-Servo Signal (желтый) → A18 (PWM6)
+Servo Signal (желтый) → A18 (настраивается в UI: A14-A19)
 Servo GND (коричневый) → GND
 Servo Power (красный)  → VBUS 5V (рекомендуется 2A)
 ```
 
-#### 2️⃣ Тест оборудования
-```bash
-python3 utils/servo_test.py
-python3 utils/check_pwm_pins.py
-```
+#### 2️⃣ Установка (Автономный запуск)
+ПК для работы больше не нужен! Приложение устанавливается прямо в систему камеры.
+1. Скачайте `advanced_servo_drop_v1.0.0.zip` из раздела [Releases](https://github.com/bobberdolle1/maixcam-servo-control/releases).
+2. Используйте App Store в MaixVision или CLI для установки:
+   ```bash
+   app_store_cli install advanced_servo_drop_v1.0.0.zip
+   ```
+3. Приложение **"Servo Drop"** появится в главном меню на экране камеры.
 
-#### 3️⃣ Запуск
-```bash
-# Простая версия
-python3 examples/simple_servo_app.py
+#### 3️⃣ Автозапуск (Опционально)
+Чтобы камера сама запускала скрипт при подаче питания от повербанка/дрона:
+- На экране камеры зайдите в **Settings** -> **Boot App**.
+- Выберите **Servo Drop**.
 
-# Полная версия с UI
-python3 advanced_servo_app.py
-```
-
-#### 4️⃣ Настройка
-- **Коснитесь экрана** для открытия меню
-- Выберите **режим детекции** (Цвет/Объект/Движение)
-- Выберите **цель** (цвет или объект)
-- Настройте **параметры** (задержки, пороги, разрешение)
-- **Сохраните** и пользуйтесь!
+#### 4️⃣ Настройка (Сенсорный экран)
+- Коснитесь экрана для открытия **Меню**.
+- Новый UI с **болькими кнопками** позволяет легко нажимать пункты.
+- Выберите режим, пины, углы (0-180°) и задержки.
 
 ### 🎯 Примеры использования
 

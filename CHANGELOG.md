@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2026-05-10
+
+### Added
+- **Autonomous Execution (MaixApp)**: Project is now packaged as a native MaixApp (`advanced_servo_drop_v1.0.0.zip`), enabling installation via the MaixCAM App Store. The app can run autonomously on boot when powered by a power bank without needing a PC connection.
+- **New Button UI System**: Completely replaced the brittle Y-axis touch logic with a robust `UIButton` class. The UI now features properly drawn rectangles with strictly defined hitboxes (X, Y, Width, Height) for all interactive elements.
+- **Extended Settings**:
+  - Pagination for settings menu.
+  - Servo Pin selection (A14-A19).
+  - Configurable Angle Open and Angle Close (0-180°).
+  - Repeat Trigger interval setting.
+- **Extended Object Detection**: Added more targets (`bird`, `chair`, `tv`, `laptop`, `book`, `clock`) to the YOLO preset cycling.
+
 ## [1.1.0] - 2026-05-10
 
 ### Added
