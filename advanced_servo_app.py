@@ -476,6 +476,40 @@ class UI:
         img.draw_string(img.width()//2 - 100, img.height()//2 + 50, 
                        "TAP AGAIN TO CANCEL", 
                        color=image.Color.from_rgb(150, 150, 150), scale=2)
+    
+    def draw_settings(self, img):
+        """Draw settings menu"""
+        # Semi-transparent background
+        img.draw_rect(0, 0, 350, img.height(), color=image.Color.from_rgb(0, 0, 0), thickness=-1)
+        
+        # Title
+        img.draw_string(10, 10, "SETTINGS", color=image.Color.from_rgb(255, 255, 0), scale=3)
+        
+        # Settings items
+        y = 70
+        spacing = 45
+        
+        items = [
+            ("Close Delay", f"{self.state.config['close_delay']}s"),
+            ("Rearm Mode", "ON" if self.state.config['rearm_mode'] else "OFF"),
+            ("Rearm Delay", f"{self.state.config['rearm_delay']}s"),
+            ("Repeat Trigger", "ON" if self.state.config['repeat_trigger'] else "OFF"),
+            ("Min Area", f"{self.state.config['min_area']}"),
+            ("Confidence", f"{self.state.config['confidence_threshold']:.2f}"),
+            ("Motion Sens", f"{self.state.config['motion_sensitivity']}"),
+            ("Back to Menu", "")
+        ]
+        
+        for i, (label, value) in enumerate(items):
+            color = image.Color.from_rgb(255, 255, 255)
+            img.draw_string(10, y + i * spacing, f"{i+1}. {label}", color=color, scale=1.8)
+            if value:
+                img.draw_string(200, y + i * spacing, value, 
+                               color=image.Color.from_rgb(0, 255, 255), scale=1.8)
+        
+        # Hint
+        img.draw_string(10, img.height() - 40, "TAP TO ADJUST", 
+                       color=image.Color.from_rgb(150, 150, 150), scale=2)
 
 # ============================================================================
 # MAIN APPLICATION
@@ -546,6 +580,8 @@ def main():
                 ui.draw_menu(img)
             elif state.ui_mode == "calibrate":
                 ui.draw_calibrate(img)
+            elif state.ui_mode == "settings":
+                ui.draw_settings(img)
             
             disp.show(img)
     
@@ -585,8 +621,7 @@ def handle_touch(state, img, tx, ty, color_detector):
                 state.config["object_preset"] = common_objects[0]
         
         elif menu_item == 4:  # Settings
-            # TODO: Implement settings submenu
-            pass
+            state.ui_mode = "settings"
         
         elif menu_item == 5:  # Calibrate
             state.ui_mode = "calibrate"
@@ -610,6 +645,63 @@ def handle_touch(state, img, tx, ty, color_detector):
             color_detector.calibrate(img, x, y)
         
         state.ui_mode = "run"
+    
+    elif state.ui_mode == "settings":
+        # Settings adjustment based on Y position
+        setting_item = ty // 45
+        
+        if setting_item == 0:  # Close delay
+            delays = [3, 5, 10, 15, 20, 30, 60]
+            current = state.config["close_delay"]
+            if current in delays:
+                idx = delays.index(current)
+                state.config["close_delay"] = delays[(idx + 1) % len(delays)]
+            else:
+                state.config["close_delay"] = delays[0]
+        
+        elif setting_item == 1:  # Rearm mode
+            state.config["rearm_mode"] = not state.config["rearm_mode"]
+        
+        elif setting_item == 2:  # Rearm delay
+            delays = [1, 2, 3, 5, 10]
+            current = state.config["rearm_delay"]
+            if current in delays:
+                idx = delays.index(current)
+                state.config["rearm_delay"] = delays[(idx + 1) % len(delays)]
+            else:
+                state.config["rearm_delay"] = delays[0]
+        
+        elif setting_item == 3:  # Repeat trigger
+            state.config["repeat_trigger"] = not state.config["repeat_trigger"]
+        
+        elif setting_item == 4:  # Min area
+            areas = [300, 500, 800, 1000, 1500, 2000]
+            current = state.config["min_area"]
+            if current in areas:
+                idx = areas.index(current)
+                state.config["min_area"] = areas[(idx + 1) % len(areas)]
+            else:
+                state.config["min_area"] = areas[0]
+        
+        elif setting_item == 5:  # Confidence threshold
+            thresholds = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8]
+            current = state.config["confidence_threshold"]
+            # Find closest
+            closest_idx = min(range(len(thresholds)), key=lambda i: abs(thresholds[i] - current))
+            state.config["confidence_threshold"] = thresholds[(closest_idx + 1) % len(thresholds)]
+        
+        elif setting_item == 6:  # Motion sensitivity
+            sensitivities = [30, 40, 50, 60, 70, 80]
+            current = state.config["motion_sensitivity"]
+            if current in sensitivities:
+                idx = sensitivities.index(current)
+                state.config["motion_sensitivity"] = sensitivities[(idx + 1) % len(sensitivities)]
+            else:
+                state.config["motion_sensitivity"] = sensitivities[0]
+        
+        elif setting_item == 7:  # Back to menu
+            state.save_config()
+            state.ui_mode = "menu"
 
 if __name__ == "__main__":
     main()
