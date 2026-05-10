@@ -100,6 +100,13 @@ class AppState:
         self.frame_count = 0
         self.fps_time = pytime.time()
         
+        # UI debouncing and sub-menus
+        self.prev_pressed = False
+        self.select_target = None
+        self.select_options = []
+        self.select_labels = []
+        self.select_page = 0
+        
     def load_config(self):
         """Load configuration from file"""
         try:
@@ -365,11 +372,11 @@ class UIButton:
         self.value = value
         
     def draw(self, img):
-        img.draw_rect(self.x, self.y, self.w, self.h, color=image.Color.from_rgb(50, 50, 50), thickness=-1)
+        img.draw_rect(self.x, self.y, self.w, self.h, color=image.Color.from_rgb(40, 40, 40), thickness=-1)
         img.draw_rect(self.x, self.y, self.w, self.h, color=image.Color.from_rgb(200, 200, 200), thickness=2)
-        img.draw_string(self.x + 10, self.y + (self.h // 2) - 12, self.label, color=image.Color.from_rgb(255, 255, 255), scale=1.6)
+        img.draw_string(self.x + 15, self.y + (self.h // 2) - 15, self.label, color=image.Color.from_rgb(255, 255, 255), scale=2.0)
         if self.value != "":
-            img.draw_string(self.x + self.w - 140, self.y + (self.h // 2) - 12, str(self.value), color=image.Color.from_rgb(0, 255, 255), scale=1.6)
+            img.draw_string(self.x + self.w - 180, self.y + (self.h // 2) - 15, str(self.value), color=image.Color.from_rgb(0, 255, 255), scale=2.0)
 
     def is_clicked(self, x, y):
         return self.x <= x <= self.x + self.w and self.y <= y <= self.y + self.h
@@ -540,6 +547,52 @@ class UI:
             self.active_buttons.append(btn)
             y += spacing
 
+    def draw_select(self, img):
+        """Draw selection list/grid"""
+        self.active_buttons = []
+        img.draw_rect(0, 0, 480, img.height(), color=image.Color.from_rgb(0, 0, 0), thickness=-1)
+        img.draw_string(10, 5, f"SELECT (P{self.state.select_page+1})", color=image.Color.from_rgb(255, 255, 0), scale=2.5)
+        
+        y = 45
+        h = 40
+        w = 200
+        spacing = 45
+        col = 0
+        
+        items_per_page = 14
+        start_idx = self.state.select_page * items_per_page
+        page_items = self.state.select_options[start_idx:start_idx + items_per_page]
+        
+        for i, option in enumerate(page_items):
+            # Calculate grid position (2 columns)
+            col = i % 2
+            row = i // 2
+            btn_x = 10 + col * (w + 10)
+            btn_y = y + row * spacing
+            
+            # Highlight current value
+            label = str(option)
+            if option == self.state.config.get(self.state.select_target):
+                label = f"[{label}]"
+            
+            btn = UIButton(i, btn_x, btn_y, w, h, label)
+            btn.draw(img)
+            self.active_buttons.append(btn)
+        
+        # Navigation buttons at bottom
+        nav_y = y + (items_per_page // 2) * spacing + 10
+        btn_prev = UIButton(-1, 10, nav_y, w, h, "<- Prev Page")
+        btn_prev.draw(img)
+        self.active_buttons.append(btn_prev)
+        
+        btn_next = UIButton(-2, 10 + w + 10, nav_y, w, h, "Next Page ->")
+        btn_next.draw(img)
+        self.active_buttons.append(btn_next)
+        
+        btn_back = UIButton(-3, 10, nav_y + spacing, w * 2 + 10, h, "Back")
+        btn_back.draw(img)
+        self.active_buttons.append(btn_back)
+
 # ============================================================================
 # MAIN APPLICATION
 # ============================================================================
@@ -583,8 +636,11 @@ def main():
             touch_data = ts.read()
             if touch_data:
                 tx, ty, pressed = touch_data
-                if pressed:
+                if pressed and not state.prev_pressed:
                     handle_touch(state, img, tx, ty, color_detector, ui)
+                state.prev_pressed = pressed
+            else:
+                state.prev_pressed = False
             
             # Detection and servo control
             detected = False
@@ -611,6 +667,8 @@ def main():
                 ui.draw_calibrate(img)
             elif state.ui_mode == "settings":
                 ui.draw_settings(img)
+            elif state.ui_mode == "select":
+                ui.draw_select(img)
             
             disp.show(img)
     
@@ -653,25 +711,41 @@ def handle_touch(state, img, tx, ty, color_detector, ui):
 
     setting_item = clicked_btn.id
 
+    if state.ui_mode == "select":
+        if setting_item == -1:  # Prev Page
+            if state.select_page > 0: state.select_page -= 1
+        elif setting_item == -2:  # Next Page
+            state.select_page += 1
+        elif setting_item == -3:  # Back
+            state.ui_mode = "settings" if state.select_target not in ["detection_mode", "color_preset", "object_preset"] else "menu"
+        else:
+            # An option was selected
+            items_per_page = 14
+            idx = state.select_page * items_per_page + setting_item
+            if idx < len(state.select_options):
+                state.config[state.select_target] = state.select_options[idx]
+                # Return to previous menu
+                state.ui_mode = "settings" if state.select_target not in ["detection_mode", "color_preset", "object_preset"] else "menu"
+        return
+
     if state.ui_mode == "menu":
         if setting_item == 0:  # Detection mode
-            modes = ["color", "object", "motion"]
-            current_idx = modes.index(state.config["detection_mode"])
-            state.config["detection_mode"] = modes[(current_idx + 1) % len(modes)]
+            state.select_target = "detection_mode"
+            state.select_options = ["color", "object", "motion"]
+            state.select_page = 0
+            state.ui_mode = "select"
         
         elif setting_item == 1:  # Color preset
-            presets = list(COLOR_PRESETS.keys())
-            current_idx = presets.index(state.config["color_preset"])
-            state.config["color_preset"] = presets[(current_idx + 1) % len(presets)]
+            state.select_target = "color_preset"
+            state.select_options = list(COLOR_PRESETS.keys())
+            state.select_page = 0
+            state.ui_mode = "select"
         
         elif setting_item == 2:  # Object target
-            # Cycle through common objects
-            common_objects = ["person", "car", "dog", "cat", "bird", "bottle", "cup", "cell phone", "chair", "tv", "laptop", "book", "clock"]
-            if state.config["object_preset"] in common_objects:
-                current_idx = common_objects.index(state.config["object_preset"])
-                state.config["object_preset"] = common_objects[(current_idx + 1) % len(common_objects)]
-            else:
-                state.config["object_preset"] = common_objects[0]
+            state.select_target = "object_preset"
+            state.select_options = ["person", "car", "dog", "cat", "bird", "bottle", "cup", "cell phone", "chair", "tv", "laptop", "book", "clock"]
+            state.select_page = 0
+            state.ui_mode = "select"
         
         elif setting_item == 3:  # Settings
             state.ui_mode = "settings"
@@ -690,36 +764,40 @@ def handle_touch(state, img, tx, ty, color_detector, ui):
     elif state.ui_mode == "settings":
         if state.settings_page == 0:
             if setting_item == 0:  # Close delay
-                delays = [3, 5, 10, 15, 20, 30, 60]
-                current = state.config["close_delay"]
-                state.config["close_delay"] = delays[(delays.index(current) + 1) % len(delays)] if current in delays else delays[0]
+                state.select_target = "close_delay"
+                state.select_options = [3, 5, 10, 15, 20, 30, 60]
+                state.select_page = 0
+                state.ui_mode = "select"
             
             elif setting_item == 1:  # Rearm mode
                 state.config["rearm_mode"] = not state.config["rearm_mode"]
             
             elif setting_item == 2:  # Rearm delay
-                delays = [1, 2, 3, 5, 10]
-                current = state.config["rearm_delay"]
-                state.config["rearm_delay"] = delays[(delays.index(current) + 1) % len(delays)] if current in delays else delays[0]
+                state.select_target = "rearm_delay"
+                state.select_options = [1, 2, 3, 5, 10]
+                state.select_page = 0
+                state.ui_mode = "select"
             
             elif setting_item == 3:  # Repeat trigger
                 state.config["repeat_trigger"] = not state.config["repeat_trigger"]
             
             elif setting_item == 4:  # Min area
-                areas = [300, 500, 800, 1000, 1500, 2000]
-                current = state.config["min_area"]
-                state.config["min_area"] = areas[(areas.index(current) + 1) % len(areas)] if current in areas else areas[0]
+                state.select_target = "min_area"
+                state.select_options = [300, 500, 800, 1000, 1500, 2000]
+                state.select_page = 0
+                state.ui_mode = "select"
             
             elif setting_item == 5:  # Confidence threshold
-                thresholds = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8]
-                current = state.config["confidence_threshold"]
-                closest_idx = min(range(len(thresholds)), key=lambda i: abs(thresholds[i] - current))
-                state.config["confidence_threshold"] = thresholds[(closest_idx + 1) % len(thresholds)]
+                state.select_target = "confidence_threshold"
+                state.select_options = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8]
+                state.select_page = 0
+                state.ui_mode = "select"
             
             elif setting_item == 6:  # Motion sensitivity
-                sensitivities = [30, 40, 50, 60, 70, 80]
-                current = state.config["motion_sensitivity"]
-                state.config["motion_sensitivity"] = sensitivities[(sensitivities.index(current) + 1) % len(sensitivities)] if current in sensitivities else sensitivities[0]
+                state.select_target = "motion_sensitivity"
+                state.select_options = [30, 40, 50, 60, 70, 80]
+                state.select_page = 0
+                state.ui_mode = "select"
             
             elif setting_item == 7:  # Next Page
                 state.settings_page = 1
@@ -731,32 +809,36 @@ def handle_touch(state, img, tx, ty, color_detector, ui):
                 
         else: # settings_page == 1
             if setting_item == 0:  # Resolution
-                resolutions = [(320, 240), (640, 480), (800, 600), (1280, 720)]
-                current = (state.config["camera_width"], state.config["camera_height"])
-                new_res = resolutions[(resolutions.index(current) + 1) % len(resolutions)] if current in resolutions else resolutions[0]
-                state.config["camera_width"] = new_res[0]
-                state.config["camera_height"] = new_res[1]
-                print(f"[SETTINGS] Resolution changed to {new_res[0]}x{new_res[1]}. Restart to apply.")
+                state.select_target = "resolution"
+                state.select_options = ["320x240", "640x480", "800x600", "1280x720"]
+                # For resolution we need a slight hack since the config stores width/height
+                state.config["resolution"] = f"{state.config['camera_width']}x{state.config['camera_height']}"
+                state.select_page = 0
+                state.ui_mode = "select"
                 
             elif setting_item == 1:  # Servo Pin
-                pins = ["A14", "A15", "A16", "A17", "A18", "A19"]
-                current = state.config.get("servo_pin", "A18")
-                state.config["servo_pin"] = pins[(pins.index(current) + 1) % len(pins)] if current in pins else pins[0]
+                state.select_target = "servo_pin"
+                state.select_options = ["A14", "A15", "A16", "A17", "A18", "A19"]
+                state.select_page = 0
+                state.ui_mode = "select"
                 
             elif setting_item == 2:  # Angle Open
-                angles = [0, 45, 90, 135, 180]
-                current = state.config.get("servo_angle_open", 90)
-                state.config["servo_angle_open"] = angles[(angles.index(current) + 1) % len(angles)] if current in angles else angles[0]
+                state.select_target = "servo_angle_open"
+                state.select_options = [0, 45, 90, 135, 180]
+                state.select_page = 0
+                state.ui_mode = "select"
                 
             elif setting_item == 3:  # Angle Close
-                angles = [0, 45, 90, 135, 180]
-                current = state.config.get("servo_angle_close", 0)
-                state.config["servo_angle_close"] = angles[(angles.index(current) + 1) % len(angles)] if current in angles else angles[0]
+                state.select_target = "servo_angle_close"
+                state.select_options = [0, 45, 90, 135, 180]
+                state.select_page = 0
+                state.ui_mode = "select"
                 
             elif setting_item == 4:  # Rep Interval
-                intervals = [1, 2, 5, 10, 15, 30]
-                current = state.config.get("repeat_interval", 10)
-                state.config["repeat_interval"] = intervals[(intervals.index(current) + 1) % len(intervals)] if current in intervals else intervals[0]
+                state.select_target = "repeat_interval"
+                state.select_options = [1, 2, 5, 10, 15, 30]
+                state.select_page = 0
+                state.ui_mode = "select"
                 
             elif setting_item == 5:  # Prev Page
                 state.settings_page = 0
@@ -765,6 +847,13 @@ def handle_touch(state, img, tx, ty, color_detector, ui):
                 state.save_config()
                 state.ui_mode = "menu"
                 state.settings_page = 0
+                
+    # Parse resolution if it was just selected
+    if state.config.get("resolution"):
+        parts = state.config["resolution"].split("x")
+        state.config["camera_width"] = int(parts[0])
+        state.config["camera_height"] = int(parts[1])
+        del state.config["resolution"]
 
 if __name__ == "__main__":
     main()
