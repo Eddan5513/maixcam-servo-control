@@ -483,36 +483,46 @@ class UI:
         img.draw_rect(0, 0, 380, img.height(), color=image.Color.from_rgb(0, 0, 0), thickness=-1)
         
         # Title
-        img.draw_string(10, 10, "SETTINGS", color=image.Color.from_rgb(255, 255, 0), scale=3)
+        img.draw_string(10, 10, f"SETTINGS P{self.state.settings_page+1}", color=image.Color.from_rgb(255, 255, 0), scale=3)
         
         # Settings items
-        y = 70
-        spacing = 42
+        y = 60
+        spacing = 35
         
-        res = f"{self.state.config['camera_width']}x{self.state.config['camera_height']}"
-        
-        items = [
-            ("Close Delay", f"{self.state.config['close_delay']}s"),
-            ("Rearm Mode", "ON" if self.state.config['rearm_mode'] else "OFF"),
-            ("Rearm Delay", f"{self.state.config['rearm_delay']}s"),
-            ("Repeat Trigger", "ON" if self.state.config['repeat_trigger'] else "OFF"),
-            ("Min Area", f"{self.state.config['min_area']}"),
-            ("Confidence", f"{self.state.config['confidence_threshold']:.2f}"),
-            ("Motion Sens", f"{self.state.config['motion_sensitivity']}"),
-            ("Resolution", res),
-            ("Back to Menu", "")
-        ]
+        if self.state.settings_page == 0:
+            items = [
+                ("Close Delay", f"{self.state.config['close_delay']}s"),
+                ("Rearm Mode", "ON" if self.state.config['rearm_mode'] else "OFF"),
+                ("Rearm Delay", f"{self.state.config['rearm_delay']}s"),
+                ("Repeat Trigger", "ON" if self.state.config['repeat_trigger'] else "OFF"),
+                ("Min Area", f"{self.state.config['min_area']}"),
+                ("Confidence", f"{self.state.config['confidence_threshold']:.2f}"),
+                ("Motion Sens", f"{self.state.config['motion_sensitivity']}"),
+                ("Next Page ->", ""),
+                ("Back to Menu", "")
+            ]
+        else:
+            res = f"{self.state.config['camera_width']}x{self.state.config['camera_height']}"
+            items = [
+                ("Resolution", res),
+                ("Servo Pin", str(self.state.config.get('servo_pin', 'A18'))),
+                ("Angle Open", f"{self.state.config.get('servo_angle_open', 90)}°"),
+                ("Angle Close", f"{self.state.config.get('servo_angle_close', 0)}°"),
+                ("Rep. Interval", f"{self.state.config.get('repeat_interval', 10)}s"),
+                ("<- Prev Page", ""),
+                ("Back to Menu", "")
+            ]
         
         for i, (label, value) in enumerate(items):
             color = image.Color.from_rgb(255, 255, 255)
-            img.draw_string(10, y + i * spacing, f"{i+1}. {label}", color=color, scale=1.7)
+            img.draw_string(10, y + i * spacing, f"{i}. {label}", color=color, scale=1.7)
             if value:
                 img.draw_string(220, y + i * spacing, value, 
                                color=image.Color.from_rgb(0, 255, 255), scale=1.7)
         
         # Hint
-        img.draw_string(10, img.height() - 40, "TAP TO ADJUST", 
-                       color=image.Color.from_rgb(150, 150, 150), scale=2)
+        img.draw_string(10, img.height() - 30, "TAP TO ADJUST", 
+                       color=image.Color.from_rgb(150, 150, 150), scale=1.5)
 
 # ============================================================================
 # MAIN APPLICATION
@@ -616,7 +626,7 @@ def handle_touch(state, img, tx, ty, color_detector):
         
         elif menu_item == 3:  # Object target
             # Cycle through common objects
-            common_objects = ["person", "car", "dog", "cat", "bottle", "cup", "cell phone"]
+            common_objects = ["person", "car", "dog", "cat", "bird", "bottle", "cup", "cell phone", "chair", "tv", "laptop", "book", "clock"]
             if state.config["object_preset"] in common_objects:
                 current_idx = common_objects.index(state.config["object_preset"])
                 state.config["object_preset"] = common_objects[(current_idx + 1) % len(common_objects)]
@@ -625,6 +635,7 @@ def handle_touch(state, img, tx, ty, color_detector):
         
         elif menu_item == 4:  # Settings
             state.ui_mode = "settings"
+            state.settings_page = 0
         
         elif menu_item == 5:  # Calibrate
             state.ui_mode = "calibrate"
@@ -651,81 +662,88 @@ def handle_touch(state, img, tx, ty, color_detector):
     
     elif state.ui_mode == "settings":
         # Settings adjustment based on Y position
-        setting_item = ty // 42
+        if ty < 40:
+            return
         
-        if setting_item == 0:  # Close delay
-            delays = [3, 5, 10, 15, 20, 30, 60]
-            current = state.config["close_delay"]
-            if current in delays:
-                idx = delays.index(current)
-                state.config["close_delay"] = delays[(idx + 1) % len(delays)]
-            else:
-                state.config["close_delay"] = delays[0]
+        setting_item = (ty - 40) // 35
         
-        elif setting_item == 1:  # Rearm mode
-            state.config["rearm_mode"] = not state.config["rearm_mode"]
-        
-        elif setting_item == 2:  # Rearm delay
-            delays = [1, 2, 3, 5, 10]
-            current = state.config["rearm_delay"]
-            if current in delays:
-                idx = delays.index(current)
-                state.config["rearm_delay"] = delays[(idx + 1) % len(delays)]
-            else:
-                state.config["rearm_delay"] = delays[0]
-        
-        elif setting_item == 3:  # Repeat trigger
-            state.config["repeat_trigger"] = not state.config["repeat_trigger"]
-        
-        elif setting_item == 4:  # Min area
-            areas = [300, 500, 800, 1000, 1500, 2000]
-            current = state.config["min_area"]
-            if current in areas:
-                idx = areas.index(current)
-                state.config["min_area"] = areas[(idx + 1) % len(areas)]
-            else:
-                state.config["min_area"] = areas[0]
-        
-        elif setting_item == 5:  # Confidence threshold
-            thresholds = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8]
-            current = state.config["confidence_threshold"]
-            # Find closest
-            closest_idx = min(range(len(thresholds)), key=lambda i: abs(thresholds[i] - current))
-            state.config["confidence_threshold"] = thresholds[(closest_idx + 1) % len(thresholds)]
-        
-        elif setting_item == 6:  # Motion sensitivity
-            sensitivities = [30, 40, 50, 60, 70, 80]
-            current = state.config["motion_sensitivity"]
-            if current in sensitivities:
-                idx = sensitivities.index(current)
-                state.config["motion_sensitivity"] = sensitivities[(idx + 1) % len(sensitivities)]
-            else:
-                state.config["motion_sensitivity"] = sensitivities[0]
-        
-        elif setting_item == 7:  # Resolution
-            resolutions = [
-                (320, 240),
-                (640, 480),
-                (800, 600),
-                (1280, 720)
-            ]
-            current = (state.config["camera_width"], state.config["camera_height"])
-            if current in resolutions:
-                idx = resolutions.index(current)
-                new_res = resolutions[(idx + 1) % len(resolutions)]
-            else:
-                new_res = resolutions[0]
+        if state.settings_page == 0:
+            if setting_item == 0:  # Close delay
+                delays = [3, 5, 10, 15, 20, 30, 60]
+                current = state.config["close_delay"]
+                state.config["close_delay"] = delays[(delays.index(current) + 1) % len(delays)] if current in delays else delays[0]
             
-            state.config["camera_width"] = new_res[0]
-            state.config["camera_height"] = new_res[1]
+            elif setting_item == 1:  # Rearm mode
+                state.config["rearm_mode"] = not state.config["rearm_mode"]
             
-            # Show restart message
-            print(f"[SETTINGS] Resolution changed to {new_res[0]}x{new_res[1]}")
-            print("[SETTINGS] Restart app to apply changes")
-        
-        elif setting_item == 8:  # Back to menu
-            state.save_config()
-            state.ui_mode = "menu"
+            elif setting_item == 2:  # Rearm delay
+                delays = [1, 2, 3, 5, 10]
+                current = state.config["rearm_delay"]
+                state.config["rearm_delay"] = delays[(delays.index(current) + 1) % len(delays)] if current in delays else delays[0]
+            
+            elif setting_item == 3:  # Repeat trigger
+                state.config["repeat_trigger"] = not state.config["repeat_trigger"]
+            
+            elif setting_item == 4:  # Min area
+                areas = [300, 500, 800, 1000, 1500, 2000]
+                current = state.config["min_area"]
+                state.config["min_area"] = areas[(areas.index(current) + 1) % len(areas)] if current in areas else areas[0]
+            
+            elif setting_item == 5:  # Confidence threshold
+                thresholds = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8]
+                current = state.config["confidence_threshold"]
+                closest_idx = min(range(len(thresholds)), key=lambda i: abs(thresholds[i] - current))
+                state.config["confidence_threshold"] = thresholds[(closest_idx + 1) % len(thresholds)]
+            
+            elif setting_item == 6:  # Motion sensitivity
+                sensitivities = [30, 40, 50, 60, 70, 80]
+                current = state.config["motion_sensitivity"]
+                state.config["motion_sensitivity"] = sensitivities[(sensitivities.index(current) + 1) % len(sensitivities)] if current in sensitivities else sensitivities[0]
+            
+            elif setting_item == 7:  # Next Page
+                state.settings_page = 1
+            
+            elif setting_item == 8:  # Back to menu
+                state.save_config()
+                state.ui_mode = "menu"
+                state.settings_page = 0
+                
+        else: # settings_page == 1
+            if setting_item == 0:  # Resolution
+                resolutions = [(320, 240), (640, 480), (800, 600), (1280, 720)]
+                current = (state.config["camera_width"], state.config["camera_height"])
+                new_res = resolutions[(resolutions.index(current) + 1) % len(resolutions)] if current in resolutions else resolutions[0]
+                state.config["camera_width"] = new_res[0]
+                state.config["camera_height"] = new_res[1]
+                print(f"[SETTINGS] Resolution changed to {new_res[0]}x{new_res[1]}. Restart to apply.")
+                
+            elif setting_item == 1:  # Servo Pin
+                pins = ["A14", "A15", "A16", "A17", "A18", "A19"]
+                current = state.config.get("servo_pin", "A18")
+                state.config["servo_pin"] = pins[(pins.index(current) + 1) % len(pins)] if current in pins else pins[0]
+                
+            elif setting_item == 2:  # Angle Open
+                angles = [0, 45, 90, 135, 180]
+                current = state.config.get("servo_angle_open", 90)
+                state.config["servo_angle_open"] = angles[(angles.index(current) + 1) % len(angles)] if current in angles else angles[0]
+                
+            elif setting_item == 3:  # Angle Close
+                angles = [0, 45, 90, 135, 180]
+                current = state.config.get("servo_angle_close", 0)
+                state.config["servo_angle_close"] = angles[(angles.index(current) + 1) % len(angles)] if current in angles else angles[0]
+                
+            elif setting_item == 4:  # Rep Interval
+                intervals = [1, 2, 5, 10, 15, 30]
+                current = state.config.get("repeat_interval", 10)
+                state.config["repeat_interval"] = intervals[(intervals.index(current) + 1) % len(intervals)] if current in intervals else intervals[0]
+                
+            elif setting_item == 5:  # Prev Page
+                state.settings_page = 0
+                
+            elif setting_item == 6:  # Back to menu
+                state.save_config()
+                state.ui_mode = "menu"
+                state.settings_page = 0
 
 if __name__ == "__main__":
     main()
