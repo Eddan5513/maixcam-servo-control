@@ -354,10 +354,30 @@ class MotionDetector:
 # UI RENDERING
 # ============================================================================
 
+class UIButton:
+    def __init__(self, id, x, y, w, h, label, value=""):
+        self.id = id
+        self.x = x
+        self.y = y
+        self.w = w
+        self.h = h
+        self.label = label
+        self.value = value
+        
+    def draw(self, img):
+        img.draw_rect(self.x, self.y, self.w, self.h, color=image.Color.from_rgb(50, 50, 50), thickness=-1)
+        img.draw_rect(self.x, self.y, self.w, self.h, color=image.Color.from_rgb(200, 200, 200), thickness=2)
+        img.draw_string(self.x + 10, self.y + (self.h // 2) - 12, self.label, color=image.Color.from_rgb(255, 255, 255), scale=1.6)
+        if self.value != "":
+            img.draw_string(self.x + self.w - 140, self.y + (self.h // 2) - 12, str(self.value), color=image.Color.from_rgb(0, 255, 255), scale=1.6)
+
+    def is_clicked(self, x, y):
+        return self.x <= x <= self.x + self.w and self.y <= y <= self.y + self.h
+
 class UI:
     def __init__(self, state):
         self.state = state
-        self.buttons = []
+        self.active_buttons = []
     
     def draw_osd(self, img, detected, detections):
         """Draw on-screen display (OSD) in run mode"""
@@ -435,37 +455,35 @@ class UI:
                 img.draw_string(x, y - 15, f"{label} {conf:.2f}", color=color, scale=1.5)
     
     def draw_menu(self, img):
-        """Draw main menu"""
+        """Draw main menu using UIButtons"""
+        self.active_buttons = []
+        
         # Semi-transparent background
-        img.draw_rect(0, 0, 300, img.height(), color=image.Color.from_rgb(0, 0, 0), thickness=-1)
+        img.draw_rect(0, 0, 360, img.height(), color=image.Color.from_rgb(0, 0, 0), thickness=-1)
         
         # Title
-        img.draw_string(10, 10, "MENU", color=image.Color.from_rgb(255, 255, 0), scale=3)
+        img.draw_string(10, 10, "MAIN MENU", color=image.Color.from_rgb(255, 255, 0), scale=2.5)
         
-        # Menu items
-        y = 70
+        y = 50
+        h = 45
+        w = 340
         spacing = 50
         
-        items = [
-            ("1. Detection Mode", self.state.config["detection_mode"]),
-            ("2. Color Preset", self.state.config["color_preset"]),
-            ("3. Object Target", self.state.config["object_preset"]),
-            ("4. Settings", ""),
-            ("5. Calibrate Color", ""),
-            ("6. ARM/DISARM", "ARMED" if self.state.armed else "DISARMED"),
-            ("7. Save & Exit", "")
+        btn_data = [
+            (0, "Detection Mode", self.state.config["detection_mode"]),
+            (1, "Color Preset", self.state.config["color_preset"]),
+            (2, "Object Target", self.state.config["object_preset"]),
+            (3, "Settings", ""),
+            (4, "Calibrate Color", ""),
+            (5, "ARM/DISARM", "ARMED" if self.state.armed else "DISARMED"),
+            (6, "Save & Exit", "")
         ]
         
-        for i, (label, value) in enumerate(items):
-            color = image.Color.from_rgb(255, 255, 255)
-            img.draw_string(10, y + i * spacing, label, color=color, scale=2)
-            if value:
-                img.draw_string(10, y + i * spacing + 25, f"  > {value}", 
-                               color=image.Color.from_rgb(0, 255, 255), scale=1.5)
-        
-        # Hint
-        img.draw_string(10, img.height() - 40, "TAP TO SELECT", 
-                       color=image.Color.from_rgb(150, 150, 150), scale=2)
+        for id, label, value in btn_data:
+            btn = UIButton(id, 10, y, w, h, label, value)
+            btn.draw(img)
+            self.active_buttons.append(btn)
+            y += spacing
     
     def draw_calibrate(self, img):
         """Draw calibration screen"""
@@ -478,51 +496,49 @@ class UI:
                        color=image.Color.from_rgb(150, 150, 150), scale=2)
     
     def draw_settings(self, img):
-        """Draw settings menu"""
+        """Draw settings menu using UIButtons"""
+        self.active_buttons = []
+        
         # Semi-transparent background
-        img.draw_rect(0, 0, 380, img.height(), color=image.Color.from_rgb(0, 0, 0), thickness=-1)
+        img.draw_rect(0, 0, 420, img.height(), color=image.Color.from_rgb(0, 0, 0), thickness=-1)
         
         # Title
-        img.draw_string(10, 10, f"SETTINGS P{self.state.settings_page+1}", color=image.Color.from_rgb(255, 255, 0), scale=3)
+        img.draw_string(10, 5, f"SETTINGS P{self.state.settings_page+1}", color=image.Color.from_rgb(255, 255, 0), scale=2.5)
         
-        # Settings items
-        y = 60
-        spacing = 35
+        y = 45
+        h = 40
+        w = 400
+        spacing = 45
         
         if self.state.settings_page == 0:
-            items = [
-                ("Close Delay", f"{self.state.config['close_delay']}s"),
-                ("Rearm Mode", "ON" if self.state.config['rearm_mode'] else "OFF"),
-                ("Rearm Delay", f"{self.state.config['rearm_delay']}s"),
-                ("Repeat Trigger", "ON" if self.state.config['repeat_trigger'] else "OFF"),
-                ("Min Area", f"{self.state.config['min_area']}"),
-                ("Confidence", f"{self.state.config['confidence_threshold']:.2f}"),
-                ("Motion Sens", f"{self.state.config['motion_sensitivity']}"),
-                ("Next Page ->", ""),
-                ("Back to Menu", "")
+            btn_data = [
+                (0, "Close Delay", f"{self.state.config['close_delay']}s"),
+                (1, "Rearm Mode", "ON" if self.state.config['rearm_mode'] else "OFF"),
+                (2, "Rearm Delay", f"{self.state.config['rearm_delay']}s"),
+                (3, "Repeat Trigger", "ON" if self.state.config['repeat_trigger'] else "OFF"),
+                (4, "Min Area", f"{self.state.config['min_area']}"),
+                (5, "Confidence", f"{self.state.config['confidence_threshold']:.2f}"),
+                (6, "Motion Sens", f"{self.state.config['motion_sensitivity']}"),
+                (7, "Next Page ->", ""),
+                (8, "Back to Menu", "")
             ]
         else:
             res = f"{self.state.config['camera_width']}x{self.state.config['camera_height']}"
-            items = [
-                ("Resolution", res),
-                ("Servo Pin", str(self.state.config.get('servo_pin', 'A18'))),
-                ("Angle Open", f"{self.state.config.get('servo_angle_open', 90)}°"),
-                ("Angle Close", f"{self.state.config.get('servo_angle_close', 0)}°"),
-                ("Rep. Interval", f"{self.state.config.get('repeat_interval', 10)}s"),
-                ("<- Prev Page", ""),
-                ("Back to Menu", "")
+            btn_data = [
+                (0, "Resolution", res),
+                (1, "Servo Pin", str(self.state.config.get('servo_pin', 'A18'))),
+                (2, "Angle Open", f"{self.state.config.get('servo_angle_open', 90)}°"),
+                (3, "Angle Close", f"{self.state.config.get('servo_angle_close', 0)}°"),
+                (4, "Rep. Interval", f"{self.state.config.get('repeat_interval', 10)}s"),
+                (5, "<- Prev Page", ""),
+                (6, "Back to Menu", "")
             ]
-        
-        for i, (label, value) in enumerate(items):
-            color = image.Color.from_rgb(255, 255, 255)
-            img.draw_string(10, y + i * spacing, f"{i}. {label}", color=color, scale=1.7)
-            if value:
-                img.draw_string(220, y + i * spacing, value, 
-                               color=image.Color.from_rgb(0, 255, 255), scale=1.7)
-        
-        # Hint
-        img.draw_string(10, img.height() - 30, "TAP TO ADJUST", 
-                       color=image.Color.from_rgb(150, 150, 150), scale=1.5)
+            
+        for id, label, value in btn_data:
+            btn = UIButton(id, 10, y, w, h, label, value)
+            btn.draw(img)
+            self.active_buttons.append(btn)
+            y += spacing
 
 # ============================================================================
 # MAIN APPLICATION
@@ -568,7 +584,7 @@ def main():
             if touch_data:
                 tx, ty, pressed = touch_data
                 if pressed:
-                    handle_touch(state, img, tx, ty, color_detector)
+                    handle_touch(state, img, tx, ty, color_detector, ui)
             
             # Detection and servo control
             detected = False
@@ -604,48 +620,12 @@ def main():
         cam.close()
         print("[EXIT] Cleanup complete")
 
-def handle_touch(state, img, tx, ty, color_detector):
+def handle_touch(state, img, tx, ty, color_detector, ui):
     """Handle touch screen input"""
     if state.ui_mode == "run":
         # Open menu
         state.ui_mode = "menu"
-    
-    elif state.ui_mode == "menu":
-        # Menu selection based on Y position
-        menu_item = ty // 50
-        
-        if menu_item == 1:  # Detection mode
-            modes = ["color", "object", "motion"]
-            current_idx = modes.index(state.config["detection_mode"])
-            state.config["detection_mode"] = modes[(current_idx + 1) % len(modes)]
-        
-        elif menu_item == 2:  # Color preset
-            presets = list(COLOR_PRESETS.keys())
-            current_idx = presets.index(state.config["color_preset"])
-            state.config["color_preset"] = presets[(current_idx + 1) % len(presets)]
-        
-        elif menu_item == 3:  # Object target
-            # Cycle through common objects
-            common_objects = ["person", "car", "dog", "cat", "bird", "bottle", "cup", "cell phone", "chair", "tv", "laptop", "book", "clock"]
-            if state.config["object_preset"] in common_objects:
-                current_idx = common_objects.index(state.config["object_preset"])
-                state.config["object_preset"] = common_objects[(current_idx + 1) % len(common_objects)]
-            else:
-                state.config["object_preset"] = common_objects[0]
-        
-        elif menu_item == 4:  # Settings
-            state.ui_mode = "settings"
-            state.settings_page = 0
-        
-        elif menu_item == 5:  # Calibrate
-            state.ui_mode = "calibrate"
-        
-        elif menu_item == 6:  # ARM/DISARM
-            state.armed = not state.armed
-        
-        elif menu_item == 7:  # Save & Exit
-            state.save_config()
-            state.ui_mode = "run"
+        return
     
     elif state.ui_mode == "calibrate":
         # Calibrate color or cancel
@@ -659,14 +639,55 @@ def handle_touch(state, img, tx, ty, color_detector):
             color_detector.calibrate(img, x, y)
         
         state.ui_mode = "run"
+        return
+
+    # Check which button was clicked
+    clicked_btn = None
+    for btn in ui.active_buttons:
+        if btn.is_clicked(tx, ty):
+            clicked_btn = btn
+            break
+            
+    if not clicked_btn:
+        return
+
+    setting_item = clicked_btn.id
+
+    if state.ui_mode == "menu":
+        if setting_item == 0:  # Detection mode
+            modes = ["color", "object", "motion"]
+            current_idx = modes.index(state.config["detection_mode"])
+            state.config["detection_mode"] = modes[(current_idx + 1) % len(modes)]
+        
+        elif setting_item == 1:  # Color preset
+            presets = list(COLOR_PRESETS.keys())
+            current_idx = presets.index(state.config["color_preset"])
+            state.config["color_preset"] = presets[(current_idx + 1) % len(presets)]
+        
+        elif setting_item == 2:  # Object target
+            # Cycle through common objects
+            common_objects = ["person", "car", "dog", "cat", "bird", "bottle", "cup", "cell phone", "chair", "tv", "laptop", "book", "clock"]
+            if state.config["object_preset"] in common_objects:
+                current_idx = common_objects.index(state.config["object_preset"])
+                state.config["object_preset"] = common_objects[(current_idx + 1) % len(common_objects)]
+            else:
+                state.config["object_preset"] = common_objects[0]
+        
+        elif setting_item == 3:  # Settings
+            state.ui_mode = "settings"
+            state.settings_page = 0
+        
+        elif setting_item == 4:  # Calibrate
+            state.ui_mode = "calibrate"
+        
+        elif setting_item == 5:  # ARM/DISARM
+            state.armed = not state.armed
+        
+        elif setting_item == 6:  # Save & Exit
+            state.save_config()
+            state.ui_mode = "run"
     
     elif state.ui_mode == "settings":
-        # Settings adjustment based on Y position
-        if ty < 40:
-            return
-        
-        setting_item = (ty - 40) // 35
-        
         if state.settings_page == 0:
             if setting_item == 0:  # Close delay
                 delays = [3, 5, 10, 15, 20, 30, 60]
