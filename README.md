@@ -159,8 +159,16 @@ MIT License
 
 Created for MaixCAM development
 
+## 📖 Документация
+
+- **[QUICKSTART.md](QUICKSTART.md)** - Быстрый старт за 5 минут
+- **[EXAMPLES.md](EXAMPLES.md)** - Примеры использования и интеграции
+- **[TECHNICAL.md](TECHNICAL.md)** - Техническая документация и оптимизация
+- **[config_examples.json](config_examples.json)** - Готовые конфигурации
+
 ## 🔗 Ссылки
 
+- [GitHub Repository](https://github.com/bobberdolle1/maixcam-servo-control)
 - [MaixPy Documentation](https://wiki.sipeed.com/maixpy/)
 - [MaixCAM Hardware](https://wiki.sipeed.com/hardware/en/maixcam/maixcam.html)
 - [YOLOv8 on MaixPy](https://wiki.sipeed.com/maixpy/doc/en/vision/yolov5.html)
