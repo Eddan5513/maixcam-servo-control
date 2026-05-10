@@ -1,13 +1,21 @@
-# MaixCAM Advanced Servo Control
+# 🤖 MaixCAM Advanced Servo Control
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python](https://img.shields.io/badge/Python-3.x-blue.svg)](https://www.python.org/)
+[![MaixPy](https://img.shields.io/badge/MaixPy-4.x-green.svg)](https://wiki.sipeed.com/maixpy/)
 
 Продвинутое приложение для управления сервоприводом на основе детекции объектов, цветов и движения для MaixCAM.
+
+![MaixCAM Servo Control](https://img.shields.io/badge/Status-Production%20Ready-brightgreen)
+![Lines of Code](https://img.shields.io/badge/Lines%20of%20Code-3900%2B-blue)
+![Documentation](https://img.shields.io/badge/Documentation-Comprehensive-orange)
 
 ## 🚀 Возможности
 
 ### Режимы детекции
-- **Color Detection** - детекция по цвету с калибровкой
-- **Object Detection** - нейросетевая детекция объектов (YOLOv8)
-- **Motion Detection** - детекция движения
+- **Color Detection** 🎨 - детекция по цвету с калибровкой
+- **Object Detection** 🤖 - нейросетевая детекция объектов (YOLOv8)
+- **Motion Detection** 🏃 - детекция движения
 
 ### Пресеты цветов
 - Yellow, Red, Green, Blue, Orange, Purple, White, Black
@@ -36,10 +44,10 @@
 
 ## 📋 Требования
 
-- MaixCAM (первое поколение с экраном)
-- Сервопривод SG90 или аналогичный
-- MaixVision для загрузки кода
-- Предустановленная модель YOLOv8 (обычно `/root/models/yolov8n.mud`)
+- MaixCAM (первое поколение с экраном) 📷
+- Сервопривод SG90 или аналогичный ⚙️
+- MaixVision для загрузки кода 💻
+- Предустановленная модель YOLOv8 (обычно `/root/models/yolov8n.mud`) 🤖
 
 ## 🔌 Подключение
 
