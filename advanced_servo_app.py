@@ -9,6 +9,7 @@ from maix import camera, display, image, touchscreen, pinmap, pwm, err, app, nn
 import time as pytime
 import json
 import os
+import math
 
 # ============================================================================
 # CONFIGURATION
@@ -40,6 +41,12 @@ DEFAULT_CONFIG = {
     "camera_width": 640,
     "camera_height": 480,
     "fps_target": 30,
+    
+    # Ballistics & Recording
+    "ballistics_mode": False,
+    "altitude": 30,      # meters
+    "speed": 15,         # m/s
+    "video_recording": False,
     
     # Custom color threshold (LAB)
     "custom_threshold": [[50, 80, 0, 30, 40, 80]]
@@ -389,7 +396,7 @@ class UI:
         self.state = state
         self.active_buttons = []
     
-    def draw_osd(self, img, detected, detections):
+    def draw_osd(self, img, detected, detections, ballistics_line_y=-1):
         """Draw on-screen display (OSD) in run mode"""
         # Draw OSD background box for better contrast
         img.draw_rect(5, 5, 260, 230, color=image.Color.from_rgb(0, 0, 0), thickness=-1)
@@ -435,6 +442,23 @@ class UI:
             rearm_remaining = int(self.state.config["rearm_delay"] - (current_time - self.state.rearm_timer))
             if rearm_remaining > 0:
                 img.draw_string(15, y_timer, f"REARM: {rearm_remaining}s", color=image.Color.from_rgb(255, 165, 0), scale=1.8)
+        
+        # Video Recording OSD
+        if self.state.config.get("video_recording"):
+            rec_color = image.Color.from_rgb(255, 0, 0) if (int(pytime.time() * 2) % 2 == 0) else image.Color.from_rgb(150, 0, 0)
+            img.draw_circle(img.width() - 30, 30, 15, color=rec_color, thickness=-1)
+            img.draw_string(img.width() - 85, 20, "REC", color=image.Color.from_rgb(255, 255, 255), scale=2.0)
+            
+        # Draw Ballistics Line
+        if self.state.config.get("ballistics_mode") and ballistics_line_y > 0:
+            color = image.Color.from_rgb(255, 0, 255)
+            # Draw dashed line
+            for i in range(0, img.width(), 20):
+                img.draw_line(i, ballistics_line_y, i+10, ballistics_line_y, color=color, thickness=3)
+            # Crosshair center
+            cx = img.width() // 2
+            img.draw_line(cx, ballistics_line_y - 20, cx, ballistics_line_y + 20, color=color, thickness=3)
+            img.draw_string(5, ballistics_line_y - 25, "DROP LINE", color=color, scale=1.5)
         
         # Draw detections
         self.draw_detections(img, detections)
@@ -550,7 +574,7 @@ class UI:
                 (7, "Next Page", ""),
                 (8, "Back to Menu", "")
             ]
-        else:
+        elif self.state.settings_page == 1:
             res = f"{self.state.config['camera_width']}x{self.state.config['camera_height']}"
             btn_data = [
                 (0, "Res", res),
@@ -558,6 +582,16 @@ class UI:
                 (2, "Angle Op", f"{self.state.config.get('servo_angle_open', 90)}°"),
                 (3, "Angle Cl", f"{self.state.config.get('servo_angle_close', 0)}°"),
                 (4, "Rep. Int", f"{self.state.config.get('repeat_interval', 10)}s"),
+                (7, "Next Page", ""),
+                (5, "Prev Page", ""),
+                (6, "Back to Menu", "")
+            ]
+        else:
+            btn_data = [
+                (9, "Ballistics", "ON" if self.state.config.get('ballistics_mode') else "OFF"),
+                (10, "Altitude", f"{self.state.config.get('altitude', 30)}m"),
+                (11, "Speed", f"{self.state.config.get('speed', 15)}m/s"),
+                (12, "Video Rec", "ON" if self.state.config.get('video_recording') else "OFF"),
                 (5, "Prev Page", ""),
                 (6, "Back to Menu", "")
             ]
@@ -682,11 +716,47 @@ def main():
                 elif mode == "motion":
                     detected, detections = motion_detector.detect(img)
                 
+                ballistics_line_y = -1
+                if state.config.get("ballistics_mode"):
+                    H = state.config.get("altitude", 30)
+                    V = state.config.get("speed", 15)
+                    g = 9.81
+                    # Math: t = sqrt(2H/g), D = V * t
+                    t_fall = math.sqrt(2 * H / g)
+                    D = V * t_fall
+                    
+                    # Assume 60 degree Vertical FOV => ground_h = 1.15 * H
+                    ground_h = 1.15 * H
+                    ppm = state.config["camera_height"] / ground_h if ground_h > 0 else 1
+                    pixel_offset = int(D * ppm)
+                    
+                    # Target approaches from top, we must drop early (above center)
+                    ballistics_line_y = int(state.config["camera_height"] / 2 - pixel_offset)
+                    
+                    # Clamp to screen
+                    ballistics_line_y = max(10, min(ballistics_line_y, state.config["camera_height"] - 10))
+                    
+                    # Intercept logic
+                    if detected and len(detections) > 0:
+                        valid_cross = False
+                        if mode == "color":
+                            for blob in detections:
+                                cy = blob[1] + blob[3]/2
+                                if cy >= ballistics_line_y:
+                                    valid_cross = True
+                        elif mode == "object":
+                            for obj in detections:
+                                cy = obj.y + obj.h/2
+                                if cy >= ballistics_line_y:
+                                    valid_cross = True
+                        # For motion, just use raw detect (or you could calculate center)
+                        detected = valid_cross
+
                 servo.update(detected)
             
             # Render UI
             if state.ui_mode == "run":
-                ui.draw_osd(img, detected, detections)
+                ui.draw_osd(img, detected, detections, ballistics_line_y)
             elif state.ui_mode == "menu":
                 ui.draw_menu(img)
             elif state.ui_mode == "calibrate":
@@ -833,7 +903,7 @@ def handle_touch(state, img, tx, ty, color_detector, ui):
                 state.ui_mode = "menu"
                 state.settings_page = 0
                 
-        else: # settings_page == 1
+        elif state.settings_page == 1:
             if setting_item == 0:  # Resolution
                 state.select_target = "resolution"
                 state.select_options = ["320x240", "640x480", "800x600", "1280x720"]
@@ -866,9 +936,34 @@ def handle_touch(state, img, tx, ty, color_detector, ui):
                 state.select_page = 0
                 state.ui_mode = "select"
                 
+            elif setting_item == 7:  # Next Page
+                state.settings_page = 2
+                
             elif setting_item == 5:  # Prev Page
                 state.settings_page = 0
                 
+            elif setting_item == 6:  # Back to menu
+                state.save_config()
+                state.ui_mode = "menu"
+                state.settings_page = 0
+                
+        else: # settings_page == 2
+            if setting_item == 9:  # Ballistics
+                state.config["ballistics_mode"] = not state.config.get("ballistics_mode", False)
+            elif setting_item == 10:  # Altitude
+                state.select_target = "altitude"
+                state.select_options = [10, 20, 30, 40, 50, 60, 80, 100]
+                state.select_page = 0
+                state.ui_mode = "select"
+            elif setting_item == 11:  # Speed
+                state.select_target = "speed"
+                state.select_options = [5, 10, 15, 20, 25, 30]
+                state.select_page = 0
+                state.ui_mode = "select"
+            elif setting_item == 12:  # Video Recording
+                state.config["video_recording"] = not state.config.get("video_recording", False)
+            elif setting_item == 5:  # Prev Page
+                state.settings_page = 1
             elif setting_item == 6:  # Back to menu
                 state.save_config()
                 state.ui_mode = "menu"
