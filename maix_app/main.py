@@ -676,6 +676,7 @@ class UI:
                 (11, "Auto Speed", "ON" if self.state.config.get('auto_speed', True) else "OFF"),
                 (12, "Speed", speed_val),
                 (13, "Video Rec", "ON" if self.state.config.get('video_recording') else "OFF"),
+                (15, "Reset", "CONFIG"),
                 (5, "Prev Page", ""),
                 (6, "Back to Menu", "")
             ]
@@ -700,7 +701,7 @@ class UI:
         w = int(img.width() / 2) - 15
         spacing = 65
         
-        items_per_page = 10
+        items_per_page = 8
         start_idx = self.state.select_page * items_per_page
         page_items = self.state.select_options[start_idx:start_idx + items_per_page]
         
@@ -929,7 +930,7 @@ def handle_touch(state, img, tx, ty, color_detector, ui):
             state.ui_mode = "settings" if state.select_target not in ["detection_mode", "color_preset", "object_preset"] else "menu"
         else:
             # An option was selected
-            items_per_page = 10
+            items_per_page = 8
             idx = state.select_page * items_per_page + setting_item
             if idx < len(state.select_options):
                 state.config[state.select_target] = state.select_options[idx]
@@ -1079,6 +1080,12 @@ def handle_touch(state, img, tx, ty, color_detector, ui):
                 state.ui_mode = "select"
             elif setting_item == 13:  # Video Recording
                 state.config["video_recording"] = not state.config.get("video_recording", False)
+            elif setting_item == 15:  # Reset Config
+                state.config = DEFAULT_CONFIG.copy()
+                state.save_config()
+                print("[SETTINGS] Configuration reset to defaults")
+                state.ui_mode = "menu"
+                state.settings_page = 0
             elif setting_item == 5:  # Prev Page
                 state.settings_page = 1
             elif setting_item == 6:  # Back to menu
