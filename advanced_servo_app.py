@@ -46,6 +46,7 @@ DEFAULT_CONFIG = {
     "ballistics_mode": False,
     "altitude": 30,      # meters
     "speed": 15,         # m/s
+    "auto_speed": True,  # Calculate speed automatically
     "video_recording": False,
     
     # Custom color threshold (LAB)
@@ -365,6 +366,66 @@ class MotionDetector:
             return False, []
 
 # ============================================================================
+# SPEED ESTIMATOR
+# ============================================================================
+
+class SpeedEstimator:
+    def __init__(self, state):
+        self.state = state
+        self.prev_img = None
+        self.last_time = pytime.time()
+        self.current_speed = self.state.config.get("speed", 15)
+        self.smooth_speed = self.current_speed
+        
+    def estimate(self, img):
+        if not self.state.config.get("auto_speed", True):
+            self.smooth_speed = self.state.config.get("speed", 15)
+            return self.smooth_speed
+            
+        current_time = pytime.time()
+        dt = current_time - self.last_time
+        if dt <= 0:
+            return self.smooth_speed
+            
+        # Fast, low-res grayscale crop for optical flow
+        try:
+            cx = img.width() // 2 - 32
+            cy = img.height() // 2 - 32
+            # Crop center 64x64, convert to grayscale to save memory and avoid SIGSEGV
+            current_img = img.crop(cx, cy, 64, 64)
+            
+            if self.prev_img is not None:
+                # Calculate pixel displacement
+                res = current_img.find_displacement(self.prev_img)
+                if res and hasattr(res, 'y_translation'):
+                    dy = res.y_translation()
+                    response = res.response()
+                    
+                    if response > 0.1: # Confidence threshold
+                        # Calculate physical speed
+                        # Assuming 60 deg vertical FOV, ground_h = 1.15 * Altitude
+                        H = self.state.config.get("altitude", 30)
+                        ground_h = 1.15 * H
+                        ppm = img.height() / ground_h if ground_h > 0 else 1
+                        
+                        # Speed = (dy pixels / pixels_per_meter) / dt
+                        # Note: dy is usually negative if the ground moves "down" relative to the camera
+                        raw_speed = abs(dy / ppm) / dt
+                        
+                        # Clamp and smooth
+                        raw_speed = max(0, min(raw_speed, 50)) # Cap at 50 m/s
+                        self.smooth_speed = (self.smooth_speed * 0.8) + (raw_speed * 0.2)
+                        self.state.config["speed"] = int(self.smooth_speed)
+            
+            self.prev_img = current_img.copy()
+        except Exception as e:
+            # Fallback if find_displacement crashes or lacks memory
+            pass
+            
+        self.last_time = current_time
+        return self.smooth_speed
+
+# ============================================================================
 # UI RENDERING
 # ============================================================================
 
@@ -587,11 +648,13 @@ class UI:
                 (6, "Back to Menu", "")
             ]
         else:
+            speed_val = "AUTO" if self.state.config.get('auto_speed') else f"{self.state.config.get('speed', 15)}m/s"
             btn_data = [
                 (9, "Ballistics", "ON" if self.state.config.get('ballistics_mode') else "OFF"),
                 (10, "Altitude", f"{self.state.config.get('altitude', 30)}m"),
-                (11, "Speed", f"{self.state.config.get('speed', 15)}m/s"),
-                (12, "Video Rec", "ON" if self.state.config.get('video_recording') else "OFF"),
+                (11, "Auto Speed", "ON" if self.state.config.get('auto_speed', True) else "OFF"),
+                (12, "Speed", speed_val),
+                (13, "Video Rec", "ON" if self.state.config.get('video_recording') else "OFF"),
                 (5, "Prev Page", ""),
                 (6, "Back to Menu", "")
             ]
@@ -679,6 +742,7 @@ def main():
     color_detector = ColorDetector(state)
     object_detector = ObjectDetector(state)
     motion_detector = MotionDetector(state)
+    speed_estimator = SpeedEstimator(state)
     ui = UI(state)
     
     print(f"[INIT] Camera: {state.config['camera_width']}x{state.config['camera_height']}")
@@ -719,7 +783,9 @@ def main():
                 ballistics_line_y = -1
                 if state.config.get("ballistics_mode"):
                     H = state.config.get("altitude", 30)
-                    V = state.config.get("speed", 15)
+                    # Update speed dynamically using optical flow if auto_speed is enabled
+                    V = speed_estimator.estimate(img)
+                    
                     g = 9.81
                     # Math: t = sqrt(2H/g), D = V * t
                     t_fall = math.sqrt(2 * H / g)
@@ -955,12 +1021,14 @@ def handle_touch(state, img, tx, ty, color_detector, ui):
                 state.select_options = [10, 20, 30, 40, 50, 60, 80, 100]
                 state.select_page = 0
                 state.ui_mode = "select"
-            elif setting_item == 11:  # Speed
+            elif setting_item == 11:  # Auto Speed Toggle
+                state.config["auto_speed"] = not state.config.get("auto_speed", True)
+            elif setting_item == 12:  # Speed Manual
                 state.select_target = "speed"
                 state.select_options = [5, 10, 15, 20, 25, 30]
                 state.select_page = 0
                 state.ui_mode = "select"
-            elif setting_item == 12:  # Video Recording
+            elif setting_item == 13:  # Video Recording
                 state.config["video_recording"] = not state.config.get("video_recording", False)
             elif setting_item == 5:  # Prev Page
                 state.settings_page = 1
