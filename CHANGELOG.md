@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.0] - 2026-05-10
+
+### Added
+- **Full Autonomous Ballistics Engine**: Added a mathematical drop physics engine that calculates time-of-flight and forward distance to draw a dynamic 'Drop Line' on the OSD. Target must intersect this line to trigger the servo.
+- **AI Altitude Estimation (Auto Alt)**: The camera now dynamically estimates its altitude by comparing target bounding-box pixel height to known real-world physical heights (e.g., person = 1.7m).
+- **Optical Flow Ground Speed (Auto Speed)**: Ground speed is now automatically calculated in real-time by analyzing pixel translation using `find_displacement` (Phase Correlation).
+- **Professional UI Overhaul**:
+  - Replaced list layout with a full-screen **2-column Grid Layout** for settings menus.
+  - Buttons are now **2-line displays** with the value shown in large, high-contrast text.
+  - OSD now has a semi-transparent dark background box for perfect readability.
+  - **Dynamic Menus**: Menu intelligently hides irrelevant options (e.g., hiding object targets when color detection is active).
+  - Software touch debouncing via edge-detection to prevent rapid-cycling.
+- **Custom Objects**: Added `custom` to the object preset list for user-trained models.
+- **Video Recording UI**: Added a video recording toggle in settings and a flashing `REC` OSD indicator.
+
 ## [2.0.0] - 2026-05-10
 
 ### Added

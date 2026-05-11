@@ -5,15 +5,15 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python](https://img.shields.io/badge/Python-3.x-blue.svg)](https://www.python.org/)
 [![MaixPy](https://img.shields.io/badge/MaixPy-4.x-green.svg)](https://wiki.sipeed.com/maixpy/)
-[![Version](https://img.shields.io/badge/version-1.1.0-brightgreen.svg)](https://github.com/bobberdolle1/maixcam-servo-control/releases)
+[![Version](https://img.shields.io/badge/version-2.5.0-brightgreen.svg)](https://github.com/bobberdolle1/maixcam-servo-control/releases)
 [![Stars](https://img.shields.io/github/stars/bobberdolle1/maixcam-servo-control?style=social)](https://github.com/bobberdolle1/maixcam-servo-control/stargazers)
 
-**Advanced AI-powered servo control system for MaixCAM with YOLOv8 object detection, color tracking, and motion sensing**
+**Advanced AI-powered servo control system for MaixCAM with Autonomous Ballistics, YOLOv8 object detection, color tracking, and motion sensing**
 
 [English](#english) | [Русский](#russian)
 
 ![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen)
-![Lines of Code](https://img.shields.io/badge/Lines%20of%20Code-3900%2B-blue)
+![Lines of Code](https://img.shields.io/badge/Lines%20of%20Code-4000%2B-blue)
 ![Documentation](https://img.shields.io/badge/Documentation-Comprehensive-orange)
 
 </div>
@@ -26,14 +26,16 @@
 ### 🎯 What is this?
 
 A **production-ready**, **AI-powered** servo control system for MaixCAM that combines:
+- 🚀 **Autonomous Ballistics** - Mathematical drop physics engine for drones/RC planes
+- 👁️ **Optical Flow Speed** - Automatic ground speed calculation via machine vision
+- 📏 **AI Rangefinder** - Automatic altitude estimation based on target size
 - 🎨 **Color Detection** - LAB color space with touchscreen calibration
-- 🤖 **Object Detection** - YOLOv8 neural network (80 COCO classes)
+- 🤖 **Object Detection** - YOLOv8 neural network (80 COCO classes + Custom)
 - 🏃 **Motion Detection** - Real-time frame differencing
-- 📱 **Touch UI** - Full-featured menu system with live settings
+- 📱 **Professional Touch UI** - Full-featured Grid Menu system with large 2-line buttons
 - ⚡ **High Performance** - 30 FPS @ 640x480, optimized algorithms
-- 🎛️ **Flexible Control** - ARM mode, rearm logic, repeat triggers
 
-Perfect for **robotics**, **automation**, **IoT projects**, **computer vision** applications, and **AI experiments**!
+Perfect for **drone payload drops**, **robotics**, **automation**, **IoT projects**, and **computer vision** applications!
 
 ### ✨ Key Features
 
@@ -41,11 +43,12 @@ Perfect for **robotics**, **automation**, **IoT projects**, **computer vision** 
 <tr>
 <td width="50%">
 
-#### 🎨 Detection Modes
-- **Color Detection** with 8 presets
-- **YOLOv8 Object Detection** (80 classes)
-- **Motion Detection** with sensitivity control
-- **Custom Color Calibration** via touchscreen
+#### 🚀 Autonomous Engine (v2.5.0+)
+- **Ballistics Physics** (Lead time & Distance)
+- **Auto Ground Speed** (Optical flow analysis)
+- **Auto Altitude** (AI bounding-box sizing)
+- **Standalone App** (Boot without PC)
+- **Video Recording** (H.265 toggle)
 
 </td>
 <td width="50%">
@@ -63,21 +66,20 @@ Perfect for **robotics**, **automation**, **IoT projects**, **computer vision** 
 <td width="50%">
 
 #### 📱 User Interface
-- **Touchscreen menu** system
-- **Real-time OSD** with status
+- **Touchscreen Grid menu**
+- **Dynamic Options** (Hides irrelevant info)
+- **Real-time OSD HUD** with status
 - **Live settings** adjustment
 - **FPS counter** and timers
-- **Detection visualization**
 
 </td>
 <td width="50%">
 
-#### 🚀 Performance
-- **30 FPS** color detection
-- **20 FPS** object detection
-- **~30ms latency**
-- **Optimized algorithms**
-- **Multiple resolutions** (320x240 to 1280x720)
+#### 🎨 Detection Modes
+- **YOLOv8 Objects** (80 classes + Custom)
+- **Color Detection** with 8 presets
+- **Motion Detection**
+- **Custom Color Calibration**
 
 </td>
 </tr>
@@ -205,14 +207,16 @@ MIT License - See [LICENSE](LICENSE) file
 ### 🎯 Что это?
 
 **Готовая к использованию** система управления сервоприводом с **искусственным интеллектом** для MaixCAM:
+- 🚀 **Автономная баллистика** - Физический движок сброса для дронов/самолетов
+- 👁️ **Оптический поток** - Автоматическое вычисление путевой скорости (Optical Flow)
+- 📏 **AI Дальномер** - Оценка высоты по размеру цели (YOLO Bounding Box)
 - 🎨 **Детекция цвета** - LAB цветовое пространство с калибровкой
-- 🤖 **Детекция объектов** - Нейросеть YOLOv8 (80 классов COCO)
+- 🤖 **Детекция объектов** - Нейросеть YOLOv8 (80 классов COCO + Custom)
 - 🏃 **Детекция движения** - Анализ кадров в реальном времени
-- 📱 **Сенсорный UI** - Полнофункциональное меню с настройками
+- 📱 **Сенсорный UI** - Профессиональное меню (Сетка) с большими кнопками
 - ⚡ **Высокая производительность** - 30 FPS @ 640x480
-- 🎛️ **Гибкое управление** - Режим ARM, реарм, повторные срабатывания
 
-Идеально для **робототехники**, **автоматизации**, **IoT проектов**, **компьютерного зрения** и **AI экспериментов**!
+Идеально для **сброса грузов с дрона**, **робототехники**, **автоматизации**, **IoT проектов** и **компьютерного зрения**!
 
 ### ✨ Основные возможности
 
@@ -220,11 +224,12 @@ MIT License - See [LICENSE](LICENSE) file
 <tr>
 <td width="50%">
 
-#### 🎨 Режимы детекции
-- **Детекция цвета** с 8 пресетами
-- **YOLOv8 детекция объектов** (80 классов)
-- **Детекция движения** с настройкой чувствительности
-- **Калибровка цвета** через тачскрин
+#### 🚀 Автономность (v2.5.0+)
+- **Баллистика** (Упреждение и Дистанция)
+- **Авто-скорость** (Анализ оптического потока)
+- **Авто-высота** (Оценка по размеру цели)
+- **Автозапуск** (Boot-приложение без ПК)
+- **Запись видео** (Тумблер H.265)
 
 </td>
 <td width="50%">
@@ -234,7 +239,7 @@ MIT License - See [LICENSE](LICENSE) file
 - **Режим ARM/DISARM** для безопасности
 - **Авто-реарм** с задержкой
 - **Режим повтора** срабатывания
-- **Поддержка нескольких PWM** пинов
+- **Поддержка пинов** A14-A19
 
 </td>
 </tr>
@@ -242,20 +247,24 @@ MIT License - See [LICENSE](LICENSE) file
 <td width="50%">
 
 #### 📱 Интерфейс
-- **Сенсорное меню**
-- **OSD в реальном времени**
+- **Новое Grid меню** (Сетка)
+- **Динамические настройки**
+- **HUD OSD с подложкой**
 - **Настройки на лету**
 - **Счетчик FPS** и таймеры
-- **Визуализация детекций**
 
 </td>
 <td width="50%">
 
-#### 🚀 Производительность
-- **30 FPS** детекция цвета
-- **20 FPS** детекция объектов
-- **~30ms задержка**
-- **Оптимизированные алгоритмы**
+#### 🎨 Режимы детекции
+- **YOLOv8** (80 классов + Custom)
+- **Детекция цвета** с 8 пресетами
+- **Детекция движения**
+- **Калибровка цвета** через тачскрин
+
+</td>
+</tr>
+</table>
 - **Несколько разрешений** (320x240 до 1280x720)
 
 </td>

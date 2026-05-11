@@ -91,9 +91,15 @@
 
 ## 🚀 Key Features
 
+### Autonomous Ballistics (v2.5.0)
+- ✅ **Mathematical Drop Engine** - Вычисление времени и дистанции полета груза
+- ✅ **Auto Ground Speed (Optical Flow)** - Автоматическое измерение скорости земли под камерой
+- ✅ **AI Altitude Rangefinder** - Оценка высоты по размеру цели
+- ✅ **Standalone Boot** - Запуск прямо при подаче питания без ПК
+
 ### Detection Modes
 - ✅ **Color Detection** - LAB color space, калибровка, пресеты
-- ✅ **Object Detection** - YOLOv8, 80 классов COCO dataset
+- ✅ **Object Detection** - YOLOv8, 80 классов COCO + Custom objects
 - ✅ **Motion Detection** - Frame differencing, настраиваемая чувствительность
 
 ### Servo Control
