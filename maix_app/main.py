@@ -41,14 +41,14 @@ DEFAULT_CONFIG = {
     "camera_width": 640,
     "camera_height": 480,
     "fps_target": 30,
-    
     # Ballistics & Recording
     "ballistics_mode": False,
     "altitude": 30,      # meters
+    "auto_altitude": True, # Estimate altitude via AI bounding box size
     "speed": 15,         # m/s
     "auto_speed": True,  # Calculate speed automatically
     "video_recording": False,
-    
+
     # Custom color threshold (LAB)
     "custom_threshold": [[50, 80, 0, 30, 40, 80]]
 }
@@ -56,14 +56,33 @@ DEFAULT_CONFIG = {
 # Color presets (LAB color space)
 COLOR_PRESETS = {
     "Yellow": [[50, 80, 0, 30, 40, 80]],
-    "Red": [[30, 80, 40, 80, 10, 80]],
-    "Green": [[30, 80, -120, -10, 0, 30]],
-    "Blue": [[30, 80, 30, 100, -120, -60]],
+    "Red": [[30, 80, 20, 80, 10, 70]],
+    "Green": [[20, 80, -60, -20, -10, 40]],
+    "Blue": [[20, 80, -10, 30, -60, -20]],
     "Orange": [[40, 80, 20, 60, 30, 70]],
     "Purple": [[20, 70, 20, 80, -80, -20]],
     "White": [[80, 100, -20, 20, -20, 20]],
     "Black": [[0, 30, -20, 20, -20, 20]],
     "Custom": [[50, 80, 0, 30, 40, 80]]
+}
+
+# Estimated real-world heights (meters) for auto-altitude
+REAL_WORLD_HEIGHTS = {
+    "person": 1.7,
+    "car": 1.5,
+    "dog": 0.5,
+    "cat": 0.3,
+    "bird": 0.2,
+    "bottle": 0.25,
+    "cup": 0.1,
+    "cell phone": 0.15,
+    "chair": 1.0,
+    "tv": 0.6,
+    "laptop": 0.3,
+    "book": 0.25,
+    "clock": 0.3,
+    "custom": 1.0,  # Generic assumption
+    "color": 1.0    # Generic assumed canvas size
 }
 
 # Object detection labels (COCO dataset)
@@ -649,9 +668,11 @@ class UI:
             ]
         else:
             speed_val = "AUTO" if self.state.config.get('auto_speed') else f"{self.state.config.get('speed', 15)}m/s"
+            alt_val = "AUTO" if self.state.config.get('auto_altitude') else f"{self.state.config.get('altitude', 30)}m"
             btn_data = [
                 (9, "Ballistics", "ON" if self.state.config.get('ballistics_mode') else "OFF"),
-                (10, "Altitude", f"{self.state.config.get('altitude', 30)}m"),
+                (14, "Auto Alt", "ON" if self.state.config.get('auto_altitude', True) else "OFF"),
+                (10, "Altitude", alt_val),
                 (11, "Auto Speed", "ON" if self.state.config.get('auto_speed', True) else "OFF"),
                 (12, "Speed", speed_val),
                 (13, "Video Rec", "ON" if self.state.config.get('video_recording') else "OFF"),
@@ -783,6 +804,32 @@ def main():
                 ballistics_line_y = -1
                 if state.config.get("ballistics_mode"):
                     H = state.config.get("altitude", 30)
+                    
+                    # AI Rangefinder: Auto-Altitude estimation
+                    if state.config.get("auto_altitude", True) and detected and len(detections) > 0:
+                        # Find largest bounding box height to estimate distance
+                        max_h_px = 0
+                        target_real_h = 1.0 # Default fallback
+                        
+                        if mode == "color":
+                            max_h_px = max([blob[3] for blob in detections])
+                            target_real_h = REAL_WORLD_HEIGHTS.get("color", 1.0)
+                        elif mode == "object":
+                            largest_obj = max(detections, key=lambda obj: obj.h)
+                            max_h_px = largest_obj.h
+                            label_idx = largest_obj.class_id
+                            if label_idx < len(OBJECT_LABELS):
+                                label_name = OBJECT_LABELS[label_idx]
+                                target_real_h = REAL_WORLD_HEIGHTS.get(label_name, 1.0)
+                        
+                        if max_h_px > 0:
+                            # Distance = (Real Height * Camera Height) / (Object Height * 1.15) 
+                            # (Assuming ~60 deg vertical FOV: 2 * tan(30) = 1.15)
+                            estimated_H = (target_real_h * state.config["camera_height"]) / (max_h_px * 1.15)
+                            # Clamp extreme values to prevent physics glitching
+                            H = max(1.0, min(estimated_H, 200.0))
+                            state.config["altitude"] = int(H) # Update config to show in UI
+                    
                     # Update speed dynamically using optical flow if auto_speed is enabled
                     V = speed_estimator.estimate(img)
                     
@@ -905,7 +952,7 @@ def handle_touch(state, img, tx, ty, color_detector, ui):
         
         elif setting_item == 2:  # Object target
             state.select_target = "object_preset"
-            state.select_options = ["person", "car", "dog", "cat", "bird", "bottle", "cup", "cell phone", "chair", "tv", "laptop", "book", "clock"]
+            state.select_options = ["person", "car", "dog", "cat", "bird", "bottle", "cup", "cell phone", "chair", "tv", "laptop", "book", "clock", "custom"]
             state.select_page = 0
             state.ui_mode = "select"
         
@@ -1016,7 +1063,9 @@ def handle_touch(state, img, tx, ty, color_detector, ui):
         else: # settings_page == 2
             if setting_item == 9:  # Ballistics
                 state.config["ballistics_mode"] = not state.config.get("ballistics_mode", False)
-            elif setting_item == 10:  # Altitude
+            elif setting_item == 14:  # Auto Altitude Toggle
+                state.config["auto_altitude"] = not state.config.get("auto_altitude", True)
+            elif setting_item == 10:  # Altitude Manual
                 state.select_target = "altitude"
                 state.select_options = [10, 20, 30, 40, 50, 60, 80, 100]
                 state.select_page = 0
