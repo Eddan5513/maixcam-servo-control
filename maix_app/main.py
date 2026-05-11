@@ -391,15 +391,19 @@ class UI:
     
     def draw_osd(self, img, detected, detections):
         """Draw on-screen display (OSD) in run mode"""
+        # Draw OSD background box for better contrast
+        img.draw_rect(5, 5, 260, 230, color=image.Color.from_rgb(0, 0, 0), thickness=-1)
+        img.draw_rect(5, 5, 260, 230, color=image.Color.from_rgb(100, 100, 100), thickness=2)
+        
         # Servo status - large and prominent
         status = "OPEN" if self.state.servo_opened else "CLOSED"
         status_color = image.Color.from_rgb(0, 255, 0) if self.state.servo_opened else image.Color.from_rgb(255, 255, 255)
-        img.draw_string(10, 10, f"SERVO: {status}", color=status_color, scale=3)
+        img.draw_string(15, 15, f"SERVO: {status}", color=status_color, scale=2.5)
         
         # ARM status
         arm_status = "ARMED" if self.state.armed else "DISARMED"
         arm_color = image.Color.from_rgb(0, 255, 0) if self.state.armed else image.Color.from_rgb(255, 0, 0)
-        img.draw_string(10, 50, f"[{arm_status}]", color=arm_color, scale=2)
+        img.draw_string(15, 50, f"[{arm_status}]", color=arm_color, scale=2.0)
         
         # Detection mode and target
         mode = self.state.config["detection_mode"].upper()
@@ -410,32 +414,35 @@ class UI:
         else:
             target = "MOTION"
         
-        img.draw_string(10, 85, f"Mode: {mode}", color=image.Color.from_rgb(255, 255, 255), scale=2)
-        img.draw_string(10, 115, f"Target: {target}", color=image.Color.from_rgb(255, 255, 255), scale=2)
+        img.draw_string(15, 85, f"MODE: {mode}", color=image.Color.from_rgb(200, 200, 200), scale=1.8)
+        img.draw_string(15, 115, f"TGT: {target}", color=image.Color.from_rgb(0, 255, 255), scale=1.8)
         
         # FPS
-        img.draw_string(10, 145, f"FPS: {self.state.fps:.0f}", color=image.Color.from_rgb(255, 255, 255), scale=2)
+        img.draw_string(15, 145, f"FPS: {self.state.fps:.0f}", color=image.Color.from_rgb(255, 255, 255), scale=1.8)
         
         # Timer countdown
+        y_timer = 175
         if self.state.servo_opened:
             current_time = pytime.time()
             remaining = int(self.state.config["close_delay"] - (current_time - self.state.open_time))
             if remaining > 0:
-                img.draw_string(10, 175, f"Close: {remaining}s", color=image.Color.from_rgb(255, 255, 0), scale=2)
+                img.draw_string(15, y_timer, f"CLOSE: {remaining}s", color=image.Color.from_rgb(255, 255, 0), scale=1.8)
+                y_timer += 30
         
         # Rearm timer
         if self.state.rearm_timer > 0:
             current_time = pytime.time()
             rearm_remaining = int(self.state.config["rearm_delay"] - (current_time - self.state.rearm_timer))
             if rearm_remaining > 0:
-                img.draw_string(10, 205, f"Rearm: {rearm_remaining}s", color=image.Color.from_rgb(255, 165, 0), scale=2)
+                img.draw_string(15, y_timer, f"REARM: {rearm_remaining}s", color=image.Color.from_rgb(255, 165, 0), scale=1.8)
         
         # Draw detections
         self.draw_detections(img, detections)
         
-        # Hint
-        img.draw_string(10, img.height() - 40, "TAP FOR MENU", 
-                       color=image.Color.from_rgb(150, 150, 150), scale=2)
+        # Hint box at the bottom
+        img.draw_rect(img.width()//2 - 120, img.height() - 45, 240, 40, color=image.Color.from_rgb(0, 0, 0), thickness=-1)
+        img.draw_string(img.width()//2 - 100, img.height() - 35, "TAP FOR MENU", 
+                       color=image.Color.from_rgb(200, 200, 200), scale=2.0)
     
     def draw_detections(self, img, detections):
         """Draw detection boxes"""
@@ -469,15 +476,15 @@ class UI:
         self.active_buttons = []
         
         # Semi-transparent background
-        img.draw_rect(0, 0, 400, img.height(), color=image.Color.from_rgb(0, 0, 0), thickness=-1)
+        img.draw_rect(0, 0, img.width(), img.height(), color=image.Color.from_rgb(0, 0, 0), thickness=-1)
         
         # Title
-        img.draw_string(10, 10, "MAIN MENU", color=image.Color.from_rgb(255, 255, 0), scale=2.5)
+        img.draw_string(10, 5, "MAIN MENU", color=image.Color.from_rgb(255, 255, 0), scale=2.5)
         
-        y = 50
-        h = 60
-        w = 380
-        spacing = 65
+        y = 45
+        h = 65
+        w = int(img.width() / 2) - 15
+        spacing = 75
         
         mode = self.state.config["detection_mode"]
         
@@ -487,7 +494,7 @@ class UI:
         
         if mode == "color":
             btn_data.append((1, "Color", self.state.config["color_preset"]))
-            btn_data.append((4, "Calibrate Color", ""))
+            btn_data.append((4, "Calibrate", "Color"))
         elif mode == "object":
             btn_data.append((2, "Target", self.state.config["object_preset"]))
             
@@ -497,12 +504,14 @@ class UI:
             (6, "Save & Exit", "")
         ])
         
-        for id, label, value in btn_data:
-            display_label = f"{label}: {value}" if value else label
-            btn = UIButton(id, 10, y, w, h, display_label, "")
+        for i, (id, label, value) in enumerate(btn_data):
+            col = i % 2
+            row = i // 2
+            btn_x = 10 + col * (w + 10)
+            btn_y = y + row * spacing
+            btn = UIButton(id, btn_x, btn_y, w, h, label, value)
             btn.draw(img)
             self.active_buttons.append(btn)
-            y += spacing
     
     def draw_calibrate(self, img):
         """Draw calibration screen"""
@@ -565,16 +574,15 @@ class UI:
     def draw_select(self, img):
         """Draw selection list/grid"""
         self.active_buttons = []
-        img.draw_rect(0, 0, 480, img.height(), color=image.Color.from_rgb(0, 0, 0), thickness=-1)
+        img.draw_rect(0, 0, img.width(), img.height(), color=image.Color.from_rgb(0, 0, 0), thickness=-1)
         img.draw_string(10, 5, f"SELECT (P{self.state.select_page+1})", color=image.Color.from_rgb(255, 255, 0), scale=2.5)
         
         y = 45
-        h = 40
-        w = 200
-        spacing = 45
-        col = 0
+        h = 60
+        w = int(img.width() / 2) - 15
+        spacing = 65
         
-        items_per_page = 14
+        items_per_page = 10
         start_idx = self.state.select_page * items_per_page
         page_items = self.state.select_options[start_idx:start_idx + items_per_page]
         
@@ -595,7 +603,10 @@ class UI:
             self.active_buttons.append(btn)
         
         # Navigation buttons at bottom
-        nav_y = y + (items_per_page // 2) * spacing + 10
+        # Calculate Y for nav buttons
+        rows = (items_per_page + 1) // 2
+        nav_y = y + rows * spacing + 10
+        
         btn_prev = UIButton(-1, 10, nav_y, w, h, "<- Prev Page")
         btn_prev.draw(img)
         self.active_buttons.append(btn_prev)
@@ -604,7 +615,7 @@ class UI:
         btn_next.draw(img)
         self.active_buttons.append(btn_next)
         
-        btn_back = UIButton(-3, 10, nav_y + spacing, w * 2 + 10, h, "Back")
+        btn_back = UIButton(-3, 10, nav_y + spacing + 10, img.width() - 20, h, "Back")
         btn_back.draw(img)
         self.active_buttons.append(btn_back)
 
@@ -735,7 +746,7 @@ def handle_touch(state, img, tx, ty, color_detector, ui):
             state.ui_mode = "settings" if state.select_target not in ["detection_mode", "color_preset", "object_preset"] else "menu"
         else:
             # An option was selected
-            items_per_page = 14
+            items_per_page = 10
             idx = state.select_page * items_per_page + setting_item
             if idx < len(state.select_options):
                 state.config[state.select_target] = state.select_options[idx]
